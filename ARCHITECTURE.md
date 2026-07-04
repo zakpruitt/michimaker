@@ -43,9 +43,9 @@ src/
     │   ├── BinderSpreadList.tsx / BinderPageView.tsx / PocketView.tsx  # views
 │   ├── BinderCover.tsx   # inside of the front cover, editable title
     │   └── SelectionBanner.tsx
-    ├── card-search/          # Pokémon TCG API search panel
-    │   ├── pokemonTcgApi.ts  # HTTP client (wire DTOs → CardSummary)
-    │   └── CardSearchPanel.tsx
+    ├── card-search/          # PokeWallet card search panel
+    │   ├── pokewalletApi.ts  # HTTP client (auth, sets/language map, images)
+    │   └── CardSearchPanel.tsx  # search + client-side filters + pagination
     ├── art-gallery/          # upload + curated gallery panel
     │   ├── galleryData.ts    # loads/validates art-gallery.json
     │   └── ArtPanel.tsx
@@ -74,7 +74,9 @@ src/
 **Coordinate system.** Pages pair into spreads exactly like a real binder:
 opening the cover shows page 0 alone on the right (the inside of the front
 cover, with the editable binder title, is on the left), then pages (1,2)
-face each other, then (3,4), … Left pages are the odd-indexed ones. A
+face each other, then (3,4), … Left pages are the odd-indexed ones. Pages
+are 3 rows by `Binder.pocketColumns` columns (3 = 9-pocket, 4 = 12-pocket,
+switchable per binder), so all page-edge math takes the column count. A
 `GridRect` (an art span) is anchored to one page; its columns may overflow
 past column 2 of a *left* page, which means it continues across the center
 gutter onto the facing page. Page 0 has no left partner, so spans anchored

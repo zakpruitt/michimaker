@@ -1,9 +1,9 @@
 # 🐧 MichiMaker
 
-Plan a 9-pocket Pokémon card binder before you buy, print, or cut anything,
-including **"Michi method"** fan-art spreads, where one large image is printed,
-cut into card-pocket-sized pieces, and arranged across multiple pockets
-(most often across the two facing pages of an open binder).
+Plan a 9- or 12-pocket Pokémon card binder before you buy, print, or cut
+anything, including **"Michi method"** fan-art spreads, where one large image
+is printed, cut into card-pocket-sized pieces, and arranged across multiple
+pockets (most often across the two facing pages of an open binder).
 
 100% client-side: no server, no database, no accounts. Your binder lives in
 your browser, in shareable URLs, and in `.json` files you export.
@@ -13,11 +13,14 @@ your browser, in shareable URLs, and in `.json` files you export.
 ## Features
 
 - **Two-page spreads**: pages render side by side like a real open binder,
-  so gutter-crossing art makes visual sense. Add/delete pages anywhere.
-- **Card search**: search the [Pokémon TCG API](https://docs.pokemontcg.io/)
-  by name, rarity, and set. Click a pocket then a result to place it, or just
-  drag a result onto a pocket. Hover a placed card for its market price;
-  each page header shows the page's total value.
+  so gutter-crossing art makes visual sense. Add/delete pages anywhere, and
+  switch any binder between 9-pocket and 12-pocket pages with the toolbar
+  toggle (12-pocket cut guides print on A4 landscape).
+- **Card search**: search [PokeWallet](https://www.pokewallet.io) by card
+  name, set code, or card number, then narrow results by language, rarity,
+  and card type. Click a pocket then a result to place it, or just drag a
+  result onto a pocket. Hover a placed card for its market price; each page
+  header shows the page's total value.
 - **Michi method art spans**: drag across empty pockets (spreadsheet-style)
   to select a rectangular region (a 2-wide gutter pair, a full 3×6 spread, a
   vertical 3-stack, anything contiguous), then pick an image to fill it. The
@@ -47,16 +50,16 @@ npm install
 npm run dev        # local dev server (Vite)
 ```
 
-### Pokémon TCG API key (optional but recommended)
+### PokeWallet API key (required for card search)
 
-The card search works without a key at low, unauthenticated rate limits. For
-higher limits, get a free key at https://dev.pokemontcg.io/ and put it in a
-`.env.local` file (git-ignored, so your key never gets committed):
+Card search is backed by the [PokeWallet API](https://www.pokewallet.io/api-docs).
+Get a key (free keys allow 100 requests/hour) and put it in a `.env.local`
+file (git-ignored, so your key never gets committed):
 
 ```bash
 cp .env.example .env.local
 # then edit .env.local:
-VITE_POKEMON_TCG_API_KEY=your-key-here
+VITE_POKEWALLET_API_KEY=your-key-here
 ```
 
 Restart `npm run dev` after changing env files (values are baked in at build

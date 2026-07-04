@@ -23,8 +23,8 @@ export function MobileLandingPage() {
       <header className={styles.hero}>
         <h1 className={styles.title}>MichiMaker</h1>
         <p className={styles.tagline}>
-          Lay out 9-pocket binder pages, cards and “Michi method” fan-art
-          spreads alike, before you print, cut, or buy anything.
+          Lay out 9- and 12-pocket binder pages, cards and “Michi method”
+          fan-art spreads alike, before you print, cut, or buy anything.
         </p>
       </header>
 
@@ -49,8 +49,8 @@ export function MobileLandingPage() {
           your open binder.
         </li>
         <li>
-          <strong>Search every card</strong>: name, rarity, and set search
-          backed by the Pokémon TCG API, with market prices.
+          <strong>Search every card</strong>: name, set, and number search
+          backed by PokeWallet, with market prices and language filters.
         </li>
         <li>
           <strong>Michi method art</strong>: stretch one image across any block

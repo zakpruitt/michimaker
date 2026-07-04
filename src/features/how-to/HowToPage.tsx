@@ -18,10 +18,10 @@ export function HowToPage() {
         </a>
         <h1 className={styles.title}>How to use MichiMaker</h1>
         <p className={styles.intro}>
-          MichiMaker plans a real 9-pocket binder: cards from the Pokémon TCG
-          library, plus "Michi method" fan-art spreads where one image is
-          printed, cut into pocket-sized pieces, and slid across several
-          pockets. Five steps from empty binder to printed art.
+          MichiMaker plans a real 9- or 12-pocket binder: cards from the
+          Pokémon TCG library, plus "Michi method" fan-art spreads where one
+          image is printed, cut into pocket-sized pieces, and slid across
+          several pockets. Five steps from empty binder to printed art.
         </p>
       </header>
 
@@ -35,7 +35,11 @@ export function HowToPage() {
           Every flip after that shows two facing pages. Use the
           <strong> +</strong> and <strong>−</strong> buttons in each page
           header to add a page after it or delete it. The header also shows
-          the total market value of the cards on that page.
+          the total market value of the cards on that page. The
+          <strong> 9 / 12</strong> toggle in the toolbar switches between
+          9-pocket and 12-pocket pages; anything that no longer fits (a
+          fourth-column card when narrowing, for example) is removed with a
+          notice.
         </p>
       </section>
 
@@ -44,10 +48,11 @@ export function HowToPage() {
           <span className={styles.stepNumber}>2</span> Add cards
         </h2>
         <p>
-          Open the <strong>Cards</strong> tab and search by name, rarity, or
-          set. Click a pocket in the binder, then click a result to place it
-          there, or simply drag a result onto any pocket. Hover a placed card
-          to see its market price.
+          Open the <strong>Cards</strong> tab and search by card name, set
+          code, or card number, then narrow the results by language, rarity,
+          or type. Click a pocket in the binder, then click a result to place
+          it there, or simply drag a result onto any pocket. Hover a placed
+          card to see its market price.
         </p>
       </section>
 
