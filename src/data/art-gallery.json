@@ -1,0 +1,44 @@
+[
+  {
+    "id": "sample-wide-1",
+    "title": "Sample wide art (replace me)",
+    "category": "Pokémon",
+    "sourceUrl": "https://picsum.photos",
+    "imageUrl": "https://picsum.photos/id/1015/1200/800"
+  },
+  {
+    "id": "sample-wide-2",
+    "title": "Sample spread art (replace me)",
+    "category": "Pokémon",
+    "sourceUrl": "https://picsum.photos",
+    "imageUrl": "https://picsum.photos/id/1016/1200/800"
+  },
+  {
+    "id": "sample-tall-1",
+    "title": "Sample tall art (replace me)",
+    "category": "Pokémon",
+    "sourceUrl": "https://picsum.photos",
+    "imageUrl": "https://picsum.photos/id/1011/600/900"
+  },
+  {
+    "id": "sample-portrait-1",
+    "title": "Sample portrait (replace me)",
+    "category": "Characters",
+    "sourceUrl": "https://picsum.photos",
+    "imageUrl": "https://picsum.photos/id/1027/600/800"
+  },
+  {
+    "id": "sample-portrait-2",
+    "title": "Sample portrait 2 (replace me)",
+    "category": "Characters",
+    "sourceUrl": "https://picsum.photos",
+    "imageUrl": "https://picsum.photos/id/338/600/800"
+  },
+  {
+    "id": "sample-square-1",
+    "title": "Sample square art (replace me)",
+    "category": "Characters",
+    "sourceUrl": "https://picsum.photos",
+    "imageUrl": "https://picsum.photos/id/823/800/800"
+  }
+]
