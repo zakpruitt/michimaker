@@ -4,7 +4,7 @@
  * drag-and-drop placement of cards and art.
  */
 import type { DragEvent, MouseEvent } from "react";
-import { COLUMNS_PER_PAGE, type PocketContent, type PocketRef } from "../../types/binder";
+import type { PocketColumns, PocketContent, PocketRef } from "../../types/binder";
 import { useBinderActions, useSelection } from "./BinderContext";
 import { computeArtCellStyle } from "./artSpanStyle";
 import {
@@ -20,9 +20,11 @@ import styles from "./PocketView.module.css";
 interface PocketViewProps {
   pocket: PocketRef;
   content: PocketContent;
+  /** The binder's page width (3 or 4), for gutter-aware print cut lines. */
+  columns: PocketColumns;
 }
 
-export function PocketView({ pocket, content }: PocketViewProps) {
+export function PocketView({ pocket, content, columns }: PocketViewProps) {
   const { selection, selectedPocketKeys, selectionIsPlaceable } = useSelection();
   const { handlePocketMouseDown, handlePocketMouseEnter, placeCardAt, dropArtOnPocket } =
     useBinderActions();
@@ -91,7 +93,7 @@ export function PocketView({ pocket, content }: PocketViewProps) {
       onDrop={handleDrop}
     >
       {content.kind === "card" && <CardCell content={content} />}
-      {content.kind === "art" && <ArtCell content={content} />}
+      {content.kind === "art" && <ArtCell content={content} columns={columns} />}
     </div>
   );
 }
@@ -114,7 +116,13 @@ function CardCell({ content }: { content: Extract<PocketContent, { kind: "card" 
   );
 }
 
-function ArtCell({ content }: { content: Extract<PocketContent, { kind: "art" }> }) {
+function ArtCell({
+  content,
+  columns,
+}: {
+  content: Extract<PocketContent, { kind: "art" }>;
+  columns: PocketColumns;
+}) {
   const { placement, rowOffset, columnOffset } = content;
   const aspectRatio = useImageAspectRatio(placement.art.imageUrl);
   const backgroundStyle = computeArtCellStyle(
@@ -137,12 +145,12 @@ function ArtCell({ content }: { content: Extract<PocketContent, { kind: "art" }>
   if (rowOffset === placement.rect.rowCount - 1) {
     cutEdges.push("bottom");
   }
-  if (columnOffset === 0 || absoluteColumn === COLUMNS_PER_PAGE) {
+  if (columnOffset === 0 || absoluteColumn === columns) {
     cutEdges.push("left");
   }
   if (
     columnOffset === placement.rect.columnCount - 1 ||
-    absoluteColumn === COLUMNS_PER_PAGE - 1
+    absoluteColumn === columns - 1
   ) {
     cutEdges.push("right");
   }

@@ -14,7 +14,7 @@ import styles from "./SelectionBanner.module.css";
 
 export function SelectionBanner() {
   const { selection, selectionIsPlaceable } = useSelection();
-  const { pocketContents } = useBinderState();
+  const { binder, pocketContents } = useBinderState();
   const { removeSelectionContent, clearSelection } = useBinderActions();
 
   let description: string;
@@ -23,7 +23,7 @@ export function SelectionBanner() {
   if (selection === null) {
     description = "Click a pocket, or drag across empty pockets for art.";
   } else {
-    const anchor = listCoveredPockets(selection)[0];
+    const anchor = listCoveredPockets(selection, binder.pocketColumns)[0];
     const anchorContent = pocketContents.get(pocketKey(anchor));
     const sizeLabel = `${selection.rowCount}×${selection.columnCount}`;
 

@@ -15,7 +15,7 @@ import styles from "./BinderToolbar.module.css";
 
 export function BinderToolbar() {
   const { binder } = useBinderState();
-  const { replaceBinder, resetBinder } = useBinderActions();
+  const { replaceBinder, resetBinder, setPocketColumns } = useBinderActions();
   const { showNotice } = useNotices();
   const openPrintDialog = usePrintDialog();
 
@@ -78,6 +78,28 @@ export function BinderToolbar() {
 
   return (
     <div className={styles.toolbar} data-print="hide">
+      <div
+        className={styles.layoutToggle}
+        role="group"
+        aria-label="Pockets per page"
+        title="Pockets per page"
+      >
+        <button
+          type="button"
+          className={binder.pocketColumns === 3 ? styles.layoutActive : undefined}
+          onClick={() => setPocketColumns(3)}
+        >
+          9
+        </button>
+        <button
+          type="button"
+          className={binder.pocketColumns === 4 ? styles.layoutActive : undefined}
+          onClick={() => setPocketColumns(4)}
+        >
+          12
+        </button>
+      </div>
+
       <div className={styles.buttonGroup}>
         <button type="button" onClick={handleCopyShareLink} title="Copy a share link to the clipboard">
           Share

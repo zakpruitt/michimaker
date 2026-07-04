@@ -7,7 +7,9 @@
  * page 0 sits alone on the right of the first spread (facing the inside of
  * the front cover), then pages (1,2) face each other, then (3,4), etc. Left
  * pages are therefore the odd-indexed ones. Within a page, pockets form a
- * 3×3 grid addressed by (row, column), both 0-based, row-major.
+ * grid addressed by (row, column), both 0-based, row-major: always 3 rows,
+ * and 3 or 4 columns depending on the binder's pocket layout (9-pocket vs
+ * 12-pocket pages).
  *
  * An art span (GridRect) is anchored to one page but its columns may overflow
  * past the right edge of a left-hand (odd-index) page, in which case it
@@ -19,8 +21,15 @@ import type { CardSummary } from "./card";
 import type { ArtPiece } from "./art";
 
 export const ROWS_PER_PAGE = 3;
-export const COLUMNS_PER_PAGE = 3;
-export const POCKETS_PER_PAGE = ROWS_PER_PAGE * COLUMNS_PER_PAGE;
+
+/** Columns per page: 3 for 9-pocket binders, 4 for 12-pocket binders. */
+export type PocketColumns = 3 | 4;
+
+export const DEFAULT_POCKET_COLUMNS: PocketColumns = 3;
+
+export function pocketsPerPage(columns: PocketColumns): number {
+  return ROWS_PER_PAGE * columns;
+}
 
 /**
  * Physical size of a standard 9-pocket-page trading card pocket, used as the
@@ -42,9 +51,10 @@ export interface PocketRef {
  * A rectangular block of pockets.
  *
  * (pageIndex, row, column) is the top-left pocket. column + columnCount may
- * exceed 3 only when pageIndex is a left-hand (odd-index) page, meaning the
- * rectangle continues across the gutter onto the facing page (columns 3..5
- * land on columns 0..2 of pageIndex + 1).
+ * exceed the binder's column count only when pageIndex is a left-hand
+ * (odd-index) page, meaning the rectangle continues across the gutter onto
+ * the facing page (raw columns past the page edge land on the same columns
+ * of pageIndex + 1, shifted back by the page width).
  */
 export interface GridRect {
   pageIndex: number;
@@ -61,12 +71,13 @@ export interface ArtPlacement {
   rect: GridRect;
 }
 
-/** A single 9-pocket binder page. Pockets hold a card or null (empty). */
+/** A single binder page. Pockets hold a card or null (empty). */
 export interface BinderPageData {
   /**
-   * Exactly POCKETS_PER_PAGE entries, row-major (index = row * 3 + column).
-   * A pocket covered by an art placement is also null here; art occupancy
-   * lives in Binder.artPlacements, not in the page.
+   * Exactly pocketsPerPage(binder.pocketColumns) entries, row-major
+   * (index = row * columns + column). A pocket covered by an art placement
+   * is also null here; art occupancy lives in Binder.artPlacements, not in
+   * the page.
    */
   pockets: (CardSummary | null)[];
 }
@@ -78,6 +89,8 @@ export const DEFAULT_BINDER_TITLE = "My Michi Binder";
 export interface Binder {
   /** Shown on the inside of the front cover, e.g. "Zak's Michi Binder". */
   title: string;
+  /** 3 = 9-pocket pages, 4 = 12-pocket pages. Applies to every page. */
+  pocketColumns: PocketColumns;
   pages: BinderPageData[];
   artPlacements: ArtPlacement[];
 }

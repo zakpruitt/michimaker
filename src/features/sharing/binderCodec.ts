@@ -11,7 +11,7 @@
  */
 import { deflate, inflate } from "pako";
 import {
-  POCKETS_PER_PAGE,
+  pocketsPerPage,
   type ArtPlacement,
   type Binder,
   type BinderPageData,
@@ -87,31 +87,38 @@ function validateBinder(value: unknown): Binder {
   if (typeof binder.title !== "string") {
     throw new BinderDecodeError("The binder data has no title.");
   }
+  const pocketColumns = binder.pocketColumns;
+  if (pocketColumns !== 3 && pocketColumns !== 4) {
+    throw new BinderDecodeError("The binder data has no pocket layout.");
+  }
   if (!Array.isArray(binder.pages) || binder.pages.length === 0) {
     throw new BinderDecodeError("The binder data contains no pages.");
   }
   if (!Array.isArray(binder.artPlacements)) {
     throw new BinderDecodeError("The binder data has no art placement list.");
   }
-  binder.pages.forEach(validatePage);
+  binder.pages.forEach((page) => validatePage(page, pocketsPerPage(pocketColumns)));
   binder.artPlacements.forEach(validatePlacement);
   const pages = binder.pages;
   // Field checks above guarantee well-formed placements; this reuses the
   // app's single definition of a geometrically legal span, silently dropping
   // spans a hand-edited or corrupted file puts where they could never go.
   const artPlacements = binder.artPlacements.filter(
-    (placement) => validateRectShape(placement.rect, pages.length) === null
+    (placement) => validateRectShape(placement.rect, pages.length, pocketColumns) === null
   );
-  return { title: binder.title, pages, artPlacements };
+  return { title: binder.title, pocketColumns, pages, artPlacements };
 }
 
-function validatePage(value: unknown): asserts value is BinderPageData {
+function validatePage(
+  value: unknown,
+  expectedPocketCount: number
+): asserts value is BinderPageData {
   const page = value as Partial<BinderPageData> | null;
   if (
     typeof page !== "object" ||
     page === null ||
     !Array.isArray(page.pockets) ||
-    page.pockets.length !== POCKETS_PER_PAGE
+    page.pockets.length !== expectedPocketCount
   ) {
     throw new BinderDecodeError("A page in the binder data is malformed.");
   }

@@ -8,6 +8,40 @@
   flex-wrap: wrap;
 }
 
+/* 9- vs 12-pocket page toggle. */
+.layoutToggle {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+}
+
+.layoutToggle button {
+  padding: 8px 11px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.83rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.layoutToggle button + button {
+  border-left: 1px solid var(--color-border);
+}
+
+.layoutToggle button:hover {
+  color: var(--color-accent-strong);
+}
+
+.layoutActive {
+  background: linear-gradient(135deg, #3b8de0, var(--color-accent-strong)) !important;
+  color: #fff !important;
+}
+
 .buttonGroup {
   display: inline-flex;
   border: 1px solid var(--color-border);

@@ -24,6 +24,7 @@ import {
 } from "react";
 import { ArtOnlyPrintSheets } from "./ArtOnlyPrintSheets";
 import { PrintDialog } from "./PrintDialog";
+import { PrintPageSetup } from "./PrintPageSetup";
 
 export interface PrintOptions {
   /** "pages": the classic per-page cut guide. "art-only": packed art sheets. */
@@ -94,6 +95,7 @@ export function PrintProvider({ children }: { children: ReactNode }) {
     <OpenPrintDialogContext.Provider value={openDialog}>
       <ActivePrintContext.Provider value={activeOptions}>
         {children}
+        <PrintPageSetup />
         {isDialogOpen && (
           <PrintDialog
             onCancel={() => setIsDialogOpen(false)}

@@ -111,6 +111,9 @@
     border-radius: 0 !important;
     background: #fff !important;
     box-shadow: none !important;
+    /* 12-pocket pages overflow one sheet; break between rows, not inside
+       a pocket. */
+    break-inside: avoid;
   }
 
   /* Pockets covered by art lose their own border so adjacent slices truly

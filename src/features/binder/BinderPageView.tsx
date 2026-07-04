@@ -4,7 +4,6 @@
  * the header buttons disappear and the grid renders at true physical size.
  */
 import {
-  COLUMNS_PER_PAGE,
   POCKET_HEIGHT_MM,
   POCKET_WIDTH_MM,
   ROWS_PER_PAGE,
@@ -41,9 +40,10 @@ export function BinderPageView({ pageIndex }: BinderPageViewProps) {
     0
   );
 
+  const columns = binder.pocketColumns;
   const pockets: PocketRef[] = [];
   for (let row = 0; row < ROWS_PER_PAGE; row++) {
-    for (let column = 0; column < COLUMNS_PER_PAGE; column++) {
+    for (let column = 0; column < columns; column++) {
       pockets.push({ pageIndex, row, column });
     }
   }
@@ -82,12 +82,17 @@ export function BinderPageView({ pageIndex }: BinderPageViewProps) {
         Page {pageIndex + 1} cut guide: each pocket is {POCKET_WIDTH_MM} mm
         × {POCKET_HEIGHT_MM} mm
       </p>
-      <div className={styles.pocketGrid} data-print="pocket-grid">
+      <div
+        className={styles.pocketGrid}
+        data-print="pocket-grid"
+        style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}
+      >
         {pockets.map((pocket) => (
           <PocketView
             key={pocketKey(pocket)}
             pocket={pocket}
             content={pocketContents.get(pocketKey(pocket)) ?? EMPTY_CONTENT}
+            columns={columns}
           />
         ))}
       </div>

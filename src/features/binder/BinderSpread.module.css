@@ -7,9 +7,10 @@
 /* Each spread scales to fit the visible binder area, like the side panel:
    its width is capped so the full spread height fits on screen. Geometry
    (pocket width w): spreadHeight ≈ 4.19w + 96px of page/spread chrome, and
-   spreadWidth = 6w + 114px, so width ≈ (availableHeight - 96px) * 1.43 +
-   114px. The 280px = that 96px + ~184px of app chrome above the scroll
-   area. Adjust here if header/banner heights change. */
+   spreadWidth = 2*columns*w + 114px, so for 3 columns width ≈
+   (availableHeight - 96px) * (6/4.19) + 114px, and for 4 columns the factor
+   becomes 8/4.19. The 280px = that 96px + ~184px of app chrome above the
+   scroll area. Adjust here if header/banner heights change. */
 .spread {
   display: flex;
   align-items: stretch;
@@ -19,6 +20,10 @@
   box-shadow: 0 10px 30px rgba(29, 78, 137, 0.25);
   width: min(100%, calc((100vh - 280px) * 1.43 + 114px));
   margin-inline: auto;
+}
+
+[data-pocket-columns="4"] .spread {
+  width: min(100%, calc((100vh - 280px) * 1.91 + 114px));
 }
 
 .page {

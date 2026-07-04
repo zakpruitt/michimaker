@@ -5,7 +5,9 @@
  * to route back into the binder.
  *
  * Invisible on screen; features/print/print.css reveals it (and hides the
- * binder) while a body.print-art-only print job runs.
+ * binder) while a body.print-art-only print job runs. Sheet dimensions and
+ * orientation follow the binder's 9- vs 12-pocket layout (see
+ * packArtSheets.ts and PrintPageSetup.tsx).
  */
 import { POCKET_HEIGHT_MM, POCKET_WIDTH_MM } from "../../types/binder";
 import { useBinderState } from "../binder/BinderContext";
@@ -13,10 +15,9 @@ import { computeArtCellStyle } from "../binder/artSpanStyle";
 import { useImageAspectRatio } from "../binder/useImageAspectRatio";
 import {
   packPiecesIntoSheets,
+  sheetDimensionsFor,
   splitPlacementsIntoPieces,
   PIECE_LABEL_HEIGHT_MM,
-  SHEET_HEIGHT_MM,
-  SHEET_WIDTH_MM,
   type PositionedPiece,
 } from "./packArtSheets";
 
@@ -27,8 +28,13 @@ interface ArtOnlyPrintSheetsProps {
 export function ArtOnlyPrintSheets({ pageIndexes }: ArtOnlyPrintSheetsProps) {
   const { binder } = useBinderState();
 
-  const pieces = splitPlacementsIntoPieces(binder.artPlacements, pageIndexes);
-  const sheets = packPiecesIntoSheets(pieces);
+  const sheetSize = sheetDimensionsFor(binder.pocketColumns);
+  const pieces = splitPlacementsIntoPieces(
+    binder.artPlacements,
+    pageIndexes,
+    binder.pocketColumns
+  );
+  const sheets = packPiecesIntoSheets(pieces, sheetSize);
   if (sheets.length === 0) {
     return null;
   }
@@ -40,13 +46,13 @@ export function ArtOnlyPrintSheets({ pageIndexes }: ArtOnlyPrintSheetsProps) {
           key={sheetIndex}
           data-print="art-sheet"
           style={{
-            width: `${SHEET_WIDTH_MM}mm`,
-            height: `${SHEET_HEIGHT_MM}mm`,
+            width: `${sheetSize.widthMm}mm`,
+            height: `${sheetSize.heightMm}mm`,
           }}
         >
           {sheet.pieces.map((positioned) => (
             <PackedPiece
-              key={`${positioned.piece.placement.id}:${positioned.piece.pageIndex}`}
+              key={`${positioned.piece.placement.id}:${positioned.piece.pageIndex}:${positioned.piece.rowOffsetStart}`}
               positioned={positioned}
             />
           ))}
@@ -58,17 +64,31 @@ export function ArtOnlyPrintSheets({ pageIndexes }: ArtOnlyPrintSheetsProps) {
 
 function PackedPiece({ positioned }: { positioned: PositionedPiece }) {
   const { piece, xMm, yMm } = positioned;
-  const { placement, pageIndex, columnOffsetStart, columnOffsetEnd } = piece;
+  const {
+    placement,
+    pageIndex,
+    columnOffsetStart,
+    columnOffsetEnd,
+    rowOffsetStart,
+    rowOffsetEnd,
+  } = piece;
   const rect = placement.rect;
   const aspectRatio = useImageAspectRatio(placement.art.imageUrl);
 
   const columnCount = columnOffsetEnd - columnOffsetStart + 1;
   const cells: { rowOffset: number; columnOffset: number }[] = [];
-  for (let rowOffset = 0; rowOffset < rect.rowCount; rowOffset++) {
+  for (let rowOffset = rowOffsetStart; rowOffset <= rowOffsetEnd; rowOffset++) {
     for (let offset = columnOffsetStart; offset <= columnOffsetEnd; offset++) {
       cells.push({ rowOffset, columnOffset: offset });
     }
   }
+
+  const isRowChunk = rowOffsetStart > 0 || rowOffsetEnd < rect.rowCount - 1;
+  const rowsLabel = isRowChunk
+    ? rowOffsetStart === rowOffsetEnd
+      ? ` · row ${rowOffsetStart + 1}`
+      : ` · rows ${rowOffsetStart + 1}-${rowOffsetEnd + 1}`
+    : "";
 
   return (
     <div
@@ -85,7 +105,7 @@ function PackedPiece({ positioned }: { positioned: PositionedPiece }) {
         style={{ height: `${PIECE_LABEL_HEIGHT_MM}mm` }}
       >
         Page {pageIndex + 1} · {placement.art.title} ({rect.rowCount}×
-        {columnCount})
+        {columnCount}){rowsLabel}
       </div>
       <div
         style={{
@@ -96,12 +116,12 @@ function PackedPiece({ positioned }: { positioned: PositionedPiece }) {
         }}
       >
         {cells.map(({ rowOffset, columnOffset }) => {
-          // Collapsed cut lines: top of every row plus the piece's outer
-          // bottom, and the left/right ends of each row run. The connected
-          // vs. cut-everything choice is applied by print.css, exactly as in
-          // the full page guide.
+          // Collapsed cut lines: the top of every row, the chunk's outer
+          // bottom (its paper edge), and the left/right ends of each row
+          // run. The connected vs. cut-everything choice is applied by
+          // print.css, exactly as in the full page guide.
           const cutEdges = ["top"];
-          if (rowOffset === rect.rowCount - 1) {
+          if (rowOffset === rowOffsetEnd) {
             cutEdges.push("bottom");
           }
           if (columnOffset === columnOffsetStart) {

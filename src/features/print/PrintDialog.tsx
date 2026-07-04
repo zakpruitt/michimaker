@@ -29,7 +29,8 @@ export function PrintDialog({ onConfirm, onCancel }: PrintDialogProps) {
   // Cheap enough to recompute every render: a handful of placements at most.
   const artPieceCount = splitPlacementsIntoPieces(
     binder.artPlacements,
-    pageIndexes
+    pageIndexes,
+    binder.pocketColumns
   ).length;
 
   const nothingSelected = !allPages && selectedPages.size === 0;

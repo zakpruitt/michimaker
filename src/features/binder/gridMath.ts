@@ -8,21 +8,24 @@
  *  - building the pocket → content lookup used by the renderer,
  *  - re-anchoring art placements when pages are inserted or deleted.
  *
+ * Pages are 3 rows by 3 or 4 columns (9- vs 12-pocket binders), so every
+ * function that reasons about page edges takes the binder's column count.
+ *
  * Rough Java analogy: a static utility class over the domain model.
  */
 import {
-  COLUMNS_PER_PAGE,
   ROWS_PER_PAGE,
   type ArtPlacement,
   type Binder,
   type GridRect,
+  type PocketColumns,
   type PocketContent,
   type PocketRef,
 } from "../../types/binder";
 
 /**
- * Spreads pair like a real binder: spread 0 is the inside of the front cover
- * plus page 0 alone on the right; every later spread s pairs pages
+ * Spread pairing matches a real binder: spread 0 is the inside of the front
+ * cover plus page 0 alone on the right; every later spread s pairs pages
  * (2s-1, 2s). See the coordinate-system note in types/binder.ts.
  */
 export function spreadIndexOfPage(pageIndex: number): number {
@@ -41,8 +44,8 @@ export function pocketKey(pocket: PocketRef): string {
 }
 
 /** True when the rect spills past its anchor page onto the facing page. */
-export function rectCrossesGutter(rect: GridRect): boolean {
-  return rect.column + rect.columnCount > COLUMNS_PER_PAGE;
+export function rectCrossesGutter(rect: GridRect, columns: PocketColumns): boolean {
+  return rect.column + rect.columnCount > columns;
 }
 
 /** Number of pockets covered by the rect. */
@@ -51,16 +54,16 @@ export function rectArea(rect: GridRect): number {
 }
 
 /** Expands a rect into every pocket it covers, resolving gutter overflow. */
-export function listCoveredPockets(rect: GridRect): PocketRef[] {
+export function listCoveredPockets(rect: GridRect, columns: PocketColumns): PocketRef[] {
   const covered: PocketRef[] = [];
   for (let rowOffset = 0; rowOffset < rect.rowCount; rowOffset++) {
     for (let columnOffset = 0; columnOffset < rect.columnCount; columnOffset++) {
-      // Raw columns 0..2 sit on the anchor page; 3..5 land on the facing page.
+      // Raw columns past the page edge land on the facing page.
       const rawColumn = rect.column + columnOffset;
       covered.push({
-        pageIndex: rect.pageIndex + Math.floor(rawColumn / COLUMNS_PER_PAGE),
+        pageIndex: rect.pageIndex + Math.floor(rawColumn / columns),
         row: rect.row + rowOffset,
-        column: rawColumn % COLUMNS_PER_PAGE,
+        column: rawColumn % columns,
       });
     }
   }
@@ -69,25 +72,30 @@ export function listCoveredPockets(rect: GridRect): PocketRef[] {
 
 /**
  * Checks that a rect is a geometrically legal span for a binder with
- * pageCount pages. Returns a user-facing error message, or null when valid.
+ * pageCount pages of the given width. Returns a user-facing error message,
+ * or null when valid.
  */
-export function validateRectShape(rect: GridRect, pageCount: number): string | null {
+export function validateRectShape(
+  rect: GridRect,
+  pageCount: number,
+  columns: PocketColumns
+): string | null {
   if (rect.rowCount < 1 || rect.columnCount < 1) {
     return "The selected region is empty.";
   }
   if (rect.row < 0 || rect.row + rect.rowCount > ROWS_PER_PAGE) {
     return "The selected region does not fit the page vertically.";
   }
-  if (rect.column < 0 || rect.column >= COLUMNS_PER_PAGE) {
+  if (rect.column < 0 || rect.column >= columns) {
     return "The selected region starts outside the page.";
   }
-  if (rect.column + rect.columnCount > COLUMNS_PER_PAGE * 2) {
+  if (rect.column + rect.columnCount > columns * 2) {
     return "The selected region is wider than a two-page spread.";
   }
-  if (rectCrossesGutter(rect) && !isLeftPage(rect.pageIndex)) {
+  if (rectCrossesGutter(rect, columns) && !isLeftPage(rect.pageIndex)) {
     return "Art can only continue across the middle of a spread, not across a page turn.";
   }
-  const lastPageIndex = rect.pageIndex + (rectCrossesGutter(rect) ? 1 : 0);
+  const lastPageIndex = rect.pageIndex + (rectCrossesGutter(rect, columns) ? 1 : 0);
   if (rect.pageIndex < 0 || lastPageIndex >= pageCount) {
     return "The selected region extends past the last page.";
   }
@@ -101,15 +109,20 @@ export function validateRectShape(rect: GridRect, pageCount: number): string | n
  * Used by drag-selection: the anchor pocket is where the drag started, the
  * other pocket is where the mouse currently is.
  */
-export function rectFromPockets(a: PocketRef, b: PocketRef): GridRect | null {
+export function rectFromPockets(
+  a: PocketRef,
+  b: PocketRef,
+  columns: PocketColumns
+): GridRect | null {
   const spreadIndex = spreadIndexOfPage(a.pageIndex);
   if (spreadIndex !== spreadIndexOfPage(b.pageIndex)) {
     return null;
   }
 
-  // Work in "spread columns": 0..2 on the left page, 3..5 on the right page.
+  // Work in "spread columns": 0..columns-1 on the left page, then the right
+  // page's columns continue from there.
   function spreadColumn(pocket: PocketRef): number {
-    return (isLeftPage(pocket.pageIndex) ? 0 : COLUMNS_PER_PAGE) + pocket.column;
+    return (isLeftPage(pocket.pageIndex) ? 0 : columns) + pocket.column;
   }
 
   const firstColumn = Math.min(spreadColumn(a), spreadColumn(b));
@@ -119,11 +132,11 @@ export function rectFromPockets(a: PocketRef, b: PocketRef): GridRect | null {
 
   // Anchor on the left page if the rect starts there, otherwise on the
   // right. Spread s holds pages (2s-1, 2s); page 0 is spread 0's right page.
-  const startsOnRightPage = firstColumn >= COLUMNS_PER_PAGE;
+  const startsOnRightPage = firstColumn >= columns;
   return {
     pageIndex: startsOnRightPage ? spreadIndex * 2 : spreadIndex * 2 - 1,
     row: firstRow,
-    column: startsOnRightPage ? firstColumn - COLUMNS_PER_PAGE : firstColumn,
+    column: startsOnRightPage ? firstColumn - columns : firstColumn,
     rowCount: lastRow - firstRow + 1,
     columnCount: lastColumn - firstColumn + 1,
   };
@@ -135,14 +148,15 @@ export function rectFromPockets(a: PocketRef, b: PocketRef): GridRect | null {
  */
 export function buildPocketContentMap(binder: Binder): Map<string, PocketContent> {
   const contents = new Map<string, PocketContent>();
+  const columns = binder.pocketColumns;
 
   binder.pages.forEach((page, pageIndex) => {
     page.pockets.forEach((card, pocketIndex) => {
       if (card !== null) {
         const pocket: PocketRef = {
           pageIndex,
-          row: Math.floor(pocketIndex / COLUMNS_PER_PAGE),
-          column: pocketIndex % COLUMNS_PER_PAGE,
+          row: Math.floor(pocketIndex / columns),
+          column: pocketIndex % columns,
         };
         contents.set(pocketKey(pocket), { kind: "card", card });
       }
@@ -150,7 +164,7 @@ export function buildPocketContentMap(binder: Binder): Map<string, PocketContent
   });
 
   for (const placement of binder.artPlacements) {
-    const pockets = listCoveredPockets(placement.rect);
+    const pockets = listCoveredPockets(placement.rect, columns);
     pockets.forEach((pocket, index) => {
       contents.set(pocketKey(pocket), {
         kind: "art",
@@ -167,11 +181,12 @@ export function buildPocketContentMap(binder: Binder): Map<string, PocketContent
 /** Finds the art placement covering a pocket, if any. */
 export function findPlacementCovering(
   placements: ArtPlacement[],
-  pocket: PocketRef
+  pocket: PocketRef,
+  columns: PocketColumns
 ): ArtPlacement | null {
   const targetKey = pocketKey(pocket);
   for (const placement of placements) {
-    const isCovered = listCoveredPockets(placement.rect).some(
+    const isCovered = listCoveredPockets(placement.rect, columns).some(
       (covered) => pocketKey(covered) === targetKey
     );
     if (isCovered) {
@@ -200,13 +215,14 @@ export interface PlacementRemapResult {
 export function remapPlacements(
   placements: ArtPlacement[],
   mapPageIndex: (oldPageIndex: number) => number | null,
-  newPageCount: number
+  newPageCount: number,
+  columns: PocketColumns
 ): PlacementRemapResult {
   const kept: ArtPlacement[] = [];
   const droppedTitles: string[] = [];
 
   for (const placement of placements) {
-    const crossesGutter = rectCrossesGutter(placement.rect);
+    const crossesGutter = rectCrossesGutter(placement.rect, columns);
     const newAnchorPage = mapPageIndex(placement.rect.pageIndex);
     const newSecondPage = crossesGutter
       ? mapPageIndex(placement.rect.pageIndex + 1)
@@ -224,7 +240,7 @@ export function remapPlacements(
         ...placement,
         rect: { ...placement.rect, pageIndex: newAnchorPage as number },
       };
-      survives = validateRectShape(remapped.rect, newPageCount) === null;
+      survives = validateRectShape(remapped.rect, newPageCount, columns) === null;
       if (survives) {
         kept.push(remapped);
         continue;

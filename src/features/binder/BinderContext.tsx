@@ -30,9 +30,16 @@ import {
   type ReactNode,
 } from "react";
 import type { ArtPiece } from "../../types/art";
-import type { Binder, GridRect, PocketContent, PocketRef } from "../../types/binder";
+import type {
+  Binder,
+  GridRect,
+  PocketColumns,
+  PocketContent,
+  PocketRef,
+} from "../../types/binder";
 import type { CardSummary } from "../../types/card";
 import { useNotices } from "../../components/notices/NoticeContext";
+import { applyPocketColumnsCssVariables } from "../../domainCssVariables";
 import { loadBinderFromLocalStorage, saveBinderToLocalStorage } from "../sharing/storage";
 import { readBinderFromCurrentUrl, removeShareParamFromUrl } from "../sharing/shareLink";
 import {
@@ -40,6 +47,7 @@ import {
   createDefaultBinder,
   planPageDelete,
   planPageInsert,
+  planPocketColumnsChange,
 } from "./binderReducer";
 import {
   buildPocketContentMap,
@@ -83,6 +91,7 @@ export interface BinderActions {
 
   // --- whole-binder operations ---
   setBinderTitle(title: string): void;
+  setPocketColumns(columns: PocketColumns): void;
   replaceBinder(binder: Binder): void;
   resetBinder(): void;
 }
@@ -113,6 +122,14 @@ function resolveInitialBinder(): InitialLoad {
   return { binder: createDefaultBinder(), source: "default", shareLinkError };
 }
 
+/** "3 cards (A, B, C)" with the list capped so notices stay readable. */
+function describeDropped(names: string[]): string {
+  const shown = names.slice(0, 4).join(", ");
+  const extra = names.length - 4;
+  const list = extra > 0 ? `${shown}, and ${extra} more` : shown;
+  return `${names.length} card${names.length === 1 ? "" : "s"} (${list})`;
+}
+
 function singlePocketRect(pocket: PocketRef): GridRect {
   return {
     pageIndex: pocket.pageIndex,
@@ -140,20 +157,20 @@ export function BinderProvider({ children }: { children: ReactNode }) {
     if (selection === null) {
       return new Set<string>();
     }
-    return new Set(listCoveredPockets(selection).map(pocketKey));
-  }, [selection]);
+    return new Set(listCoveredPockets(selection, binder.pocketColumns).map(pocketKey));
+  }, [selection, binder.pocketColumns]);
 
   const selectionIsPlaceable = useMemo(() => {
     if (selection === null) {
       return false;
     }
-    if (validateRectShape(selection, binder.pages.length) !== null) {
+    if (validateRectShape(selection, binder.pages.length, binder.pocketColumns) !== null) {
       return false;
     }
-    return listCoveredPockets(selection).every(
+    return listCoveredPockets(selection, binder.pocketColumns).every(
       (pocket) => !pocketContents.has(pocketKey(pocket))
     );
-  }, [selection, binder.pages.length, pocketContents]);
+  }, [selection, binder.pages.length, binder.pocketColumns, pocketContents]);
 
   // Latest-state snapshot so the action callbacks below can stay stable
   // (identical object for the app's lifetime) while always reading current
@@ -183,6 +200,12 @@ export function BinderProvider({ children }: { children: ReactNode }) {
       );
     }
   }, [initialLoad, showNotice]);
+
+  // Keep the print stylesheet's pocket-grid template in sync with the
+  // binder's 9- vs 12-pocket layout.
+  useEffect(() => {
+    applyPocketColumnsCssVariables(binder.pocketColumns);
+  }, [binder.pocketColumns]);
 
   // Auto-save, debounced so bursts of edits (and binders with large uploaded
   // images) serialize once, not once per change; flushed when the tab hides
@@ -238,13 +261,17 @@ export function BinderProvider({ children }: { children: ReactNode }) {
 
     function tryPlaceArt(rect: GridRect, art: ArtPiece): void {
       const { binder: currentBinder, pocketContents: contents } = snapshotRef.current;
-      const shapeError = validateRectShape(rect, currentBinder.pages.length);
+      const shapeError = validateRectShape(
+        rect,
+        currentBinder.pages.length,
+        currentBinder.pocketColumns
+      );
       if (shapeError !== null) {
         showNotice(shapeError, "error");
         return;
       }
-      const isBlocked = listCoveredPockets(rect).some((pocket) =>
-        contents.has(pocketKey(pocket))
+      const isBlocked = listCoveredPockets(rect, currentBinder.pocketColumns).some(
+        (pocket) => contents.has(pocketKey(pocket))
       );
       if (isBlocked) {
         showNotice(
@@ -301,7 +328,10 @@ export function BinderProvider({ children }: { children: ReactNode }) {
           );
           return;
         }
-        placeCardAt(listCoveredPockets(currentSelection)[0], card);
+        placeCardAt(
+          listCoveredPockets(currentSelection, snapshotRef.current.binder.pocketColumns)[0],
+          card
+        );
         setSelection(null);
       },
 
@@ -329,11 +359,15 @@ export function BinderProvider({ children }: { children: ReactNode }) {
       },
 
       removeSelectionContent(): void {
-        const { selection: currentSelection, pocketContents: contents } = snapshotRef.current;
+        const {
+          selection: currentSelection,
+          pocketContents: contents,
+          binder: currentBinder,
+        } = snapshotRef.current;
         if (currentSelection === null) {
           return;
         }
-        const anchor = listCoveredPockets(currentSelection)[0];
+        const anchor = listCoveredPockets(currentSelection, currentBinder.pocketColumns)[0];
         const content = contents.get(pocketKey(anchor));
         if (content === undefined || content.kind === "empty") {
           return;
@@ -367,7 +401,7 @@ export function BinderProvider({ children }: { children: ReactNode }) {
         }
         // Returns null when the mouse wanders onto another spread; the
         // selection keeps its last valid rectangle in that case.
-        const rect = rectFromPockets(anchor, pocket);
+        const rect = rectFromPockets(anchor, pocket, snapshotRef.current.binder.pocketColumns);
         if (rect !== null) {
           setSelection(rect);
         }
@@ -379,6 +413,23 @@ export function BinderProvider({ children }: { children: ReactNode }) {
 
       setBinderTitle(title: string): void {
         dispatch({ type: "SET_TITLE", title });
+      },
+
+      setPocketColumns(columns: PocketColumns): void {
+        const currentBinder = snapshotRef.current.binder;
+        if (columns === currentBinder.pocketColumns) {
+          return;
+        }
+        const plan = planPocketColumnsChange(currentBinder, columns);
+        if (plan.droppedCardNames.length > 0) {
+          showNotice(
+            `Removed ${describeDropped(plan.droppedCardNames)} that sat in the fourth column.`,
+            "info"
+          );
+        }
+        warnAboutDroppedArt(plan.droppedTitles);
+        setSelection(null);
+        dispatch({ type: "SET_POCKET_COLUMNS", columns });
       },
 
       replaceBinder(newBinder: Binder): void {

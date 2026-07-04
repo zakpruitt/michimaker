@@ -24,7 +24,11 @@ export function BinderSpreadList() {
   }
 
   return (
-    <div className={styles.spreadList} data-print="binder-root">
+    <div
+      className={styles.spreadList}
+      data-print="binder-root"
+      data-pocket-columns={binder.pocketColumns}
+    >
       <div className={styles.spread} data-print="spread">
         <BinderCover />
         <div className={styles.gutter} data-print="hide" aria-hidden="true" />

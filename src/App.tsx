@@ -58,7 +58,7 @@ function AppLayout() {
         <div className={styles.branding}>
           <h1 className={styles.title}>MichiMaker</h1>
           <p className={styles.subtitle}>
-            Plan 9-pocket binder pages and Michi-method art spreads
+            Plan 9 and 12 pocket binder pages and Michi-method art spreads
           </p>
         </div>
         <BinderToolbar />
