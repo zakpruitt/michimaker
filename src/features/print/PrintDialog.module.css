@@ -139,7 +139,7 @@
 
 .printButton {
   border: 1px solid transparent;
-  background: linear-gradient(135deg, #3b8de0, var(--color-accent-strong));
+  background: var(--color-accent);
   color: #fff;
   box-shadow: 0 4px 12px rgba(43, 125, 210, 0.35);
 }

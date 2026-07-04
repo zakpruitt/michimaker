@@ -38,7 +38,7 @@
 }
 
 .layoutActive {
-  background: linear-gradient(135deg, #3b8de0, var(--color-accent-strong)) !important;
+  background: var(--color-accent) !important;
   color: #fff !important;
 }
 
@@ -76,7 +76,7 @@
   padding: 8px 18px;
   border: 1px solid transparent;
   border-radius: 12px;
-  background: linear-gradient(135deg, #3b8de0, var(--color-accent-strong));
+  background: var(--color-accent);
   color: #fff;
   font-size: 0.83rem;
   font-weight: 600;

@@ -74,7 +74,7 @@
   width: 26px;
   height: 26px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #3b8de0, var(--color-accent-strong));
+  background: var(--color-accent);
   color: #fff;
   font-size: 0.85rem;
   flex-shrink: 0;
