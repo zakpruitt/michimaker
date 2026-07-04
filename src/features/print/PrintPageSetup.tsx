@@ -1,8 +1,7 @@
 /**
- * Keeps the printed page orientation in step with the binder layout:
- * 9-pocket pages (189mm rows) print portrait, 12-pocket pages (252mm rows)
- * only fit A4 sideways. Rendering a <style> tag is the one reliable way to
- * swap the @page rule, since CSS cannot vary it from a body class.
+ * Swaps the printed @page orientation to A4 landscape for 12-pocket pages.
+ * Rendering a <style> tag is the one reliable way to change an @page rule,
+ * since CSS cannot vary it from a body class.
  */
 import { useBinderState } from "../binder/BinderContext";
 

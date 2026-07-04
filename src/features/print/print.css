@@ -2,16 +2,15 @@
  *
  * When a print job runs, these rules take over: all app chrome disappears
  * and each binder page renders on its own sheet at true physical size, every
- * pocket exactly 63mm x 88mm, matching a standard 9-pocket binder page, with
- * dashed lines marking where to cut each art piece so the slices drop
- * straight into real pockets.
+ * pocket exactly 63mm x 88mm, with dashed lines marking where to cut each
+ * art piece so the slices drop straight into real pockets.
  *
  * Components opt in via data-print attributes (stable across CSS Modules'
  * hashed class names):
  *   data-print="hide"          chrome hidden while printing
  *   data-print="page"          one binder page, one sheet
  *   data-print-hidden          page excluded by the print dialog's selection
- *   data-print="pocket-grid"   the 3x3 grid, gaps collapsed for cutting
+ *   data-print="pocket-grid"   the pocket grid, gaps collapsed for cutting
  *   data-print="pocket"        a pocket, forced to 63mm x 88mm
  *   data-print-content         what the pocket holds (empty / card / art)
  *   data-print="art-cell"      one pocket-sized slice of an art span

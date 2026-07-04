@@ -1,14 +1,9 @@
 /**
- * Card search side panel, backed by the PokeWallet API. One free-text
- * search (card name, set code, or card number), then narrow the results by
- * language, rarity, and card type client-side (the API has no filter
- * parameters yet) and optionally sort by price.
- *
- * Card images require the API key header, so <img src> cannot load them
- * directly: each visible result's image is fetched as a data: URL and
- * cached by card id. Placing a card bakes that data URL into the binder,
- * which keeps saved binders, share links, and prints working without a
- * key. A result becomes draggable once its image has arrived.
+ * Card search side panel: one free-text search against PokeWallet, narrowed
+ * client-side by language, rarity, and type. Each visible result's image is
+ * fetched as a data: URL (the image endpoint needs the API key; see
+ * CardSummary.smallImageUrl) and a result becomes draggable once its image
+ * has arrived.
  */
 import {
   useEffect,

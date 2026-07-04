@@ -1,8 +1,6 @@
 /**
- * Domain model for a Pokémon card as stored in the binder.
- *
- * This is a slimmed-down snapshot of the PokeWallet API response (think: the
- * DTO we map the API entity into), and insulates saved data from API changes.
+ * A Pokémon card as stored in the binder: a slimmed-down snapshot of the
+ * PokeWallet API response, insulating saved data from API changes.
  */
 export interface CardSummary {
   /** PokeWallet card id, e.g. "pk_72046…". */

@@ -1,22 +1,11 @@
 /**
- * Client for the PokeWallet API (https://www.pokewallet.io/api-docs), the
- * app's only network calls.
+ * Client for the PokeWallet API (https://www.pokewallet.io/api-docs). Every
+ * request needs an X-API-Key header, from VITE_POKEWALLET_API_KEY in
+ * .env.local (see .env.example).
  *
- * The API key is required on every request (X-API-Key header) and comes
- * from VITE_POKEWALLET_API_KEY in .env.local (see .env.example). Free keys
- * allow 100 requests/hour.
- *
- * /search only takes a free-text q (card name, set code, or card number),
- * with no filter parameters yet, so language / rarity / type narrowing
- * happens client-side in the panel. A card's language is not on the card
- * itself: each PokeWallet set is a single language, so /sets is fetched
- * once per session and cached as a set_id -> language map.
- *
- * Card images come from /images/:id, which also requires the key header,
- * so a plain <img src> cannot load them. fetchCardImageDataUrl downloads
- * one via fetch() and returns a data: URL; the panel caches these and bakes
- * them into placed cards, so saved binders, share links, and the printed
- * cut guide all work without any key.
+ * /search only takes a free-text q, so language / rarity / type narrowing
+ * happens client-side in the panel. Language lives on the set, not the card:
+ * /sets is fetched once per session and cached as a set_id -> language map.
  */
 import type {
   PokewalletCard,

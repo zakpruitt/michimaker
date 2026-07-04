@@ -5,9 +5,6 @@
  *
  * and the reverse. Also owns shape validation of decoded data, since share
  * links and imported files arrive from outside the app and can be corrupted.
- *
- * Rough Java analogy: a Jackson ObjectMapper plus a bean validator, wrapped
- * in one codec class.
  */
 import { deflate, inflate } from "pako";
 import {

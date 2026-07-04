@@ -3,22 +3,14 @@
  * placements into printable pieces and pack them onto as few A4 sheets as
  * possible.
  *
- * A placement that crosses the spread gutter lands in two different physical
- * binder pages, so it always needs a cut at the gutter anyway. We therefore
- * split it into one piece per page up front. Pieces taller than the sheet
- * are further split into row chunks; that also costs nothing physically,
- * because rows are always cut apart in the Michi method (only side-by-side
- * pockets can stay connected).
+ * A placement crossing the spread gutter needs a cut at the gutter anyway,
+ * so it is split into one piece per page up front. Pieces taller than the
+ * sheet are further split into row chunks, which also costs nothing: rows
+ * are always cut apart in the Michi method.
  *
- * Sheet orientation follows the binder: 9-pocket rows (max 189mm) fit A4
- * portrait, while 12-pocket rows (max 252mm) need A4 landscape, which in
- * turn fits at most 2 pocket rows per sheet. PrintPageSetup.tsx switches
- * the @page orientation to match.
- *
- * Packing uses a simple shelf algorithm: sort pieces tallest-first, fill a
- * horizontal shelf left to right, start a new shelf below when a piece does
- * not fit, and a new sheet when the shelf would run off the page. Not
- * optimal, but predictable and close enough for at most a few dozen pieces.
+ * Packing is a simple shelf algorithm (tallest first, fill a shelf left to
+ * right, new shelf below, new sheet when full). Not optimal, but predictable
+ * and close enough for at most a few dozen pieces.
  */
 import {
   POCKET_HEIGHT_MM,
@@ -33,6 +25,8 @@ export interface SheetDimensions {
   heightMm: number;
 }
 
+/** 12-pocket rows (252mm) only fit A4 sideways; PrintPageSetup.tsx switches
+ *  the @page orientation to match. */
 export function sheetDimensionsFor(columns: PocketColumns): SheetDimensions {
   return columns === 4
     ? { widthMm: 278, heightMm: 186 } // A4 landscape

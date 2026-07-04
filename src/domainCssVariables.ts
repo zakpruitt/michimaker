@@ -1,12 +1,8 @@
 /**
  * Bridges the domain constants in types/binder.ts into CSS custom properties
- * on the document root, so stylesheets (notably the printable cut guide in
- * features/print/print.css and the pocket aspect ratio) derive from the same
- * single source of truth as the TypeScript span math: change the pocket
- * size in one place and screen, print, and crop math all stay in sync.
- *
- * The static sizes install once at boot; the per-binder column count (9- vs
- * 12-pocket pages) is applied by BinderProvider whenever it changes.
+ * on the document root, so screen, print, and crop math share one source of
+ * truth. Static sizes install once at boot; the per-binder column count is
+ * applied by BinderProvider whenever it changes.
  */
 import {
   DEFAULT_POCKET_COLUMNS,

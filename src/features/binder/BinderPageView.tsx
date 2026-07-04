@@ -1,7 +1,7 @@
 /**
- * One 9-pocket binder page: a header (page number, total card value, page
- * management buttons) above the 3×3 pocket grid. In the printed cut guide
- * the header buttons disappear and the grid renders at true physical size.
+ * One binder page: a header (page number, total card value, page management
+ * buttons) above the pocket grid. In the printed cut guide the header
+ * buttons disappear and the grid renders at true physical size.
  */
 import {
   POCKET_HEIGHT_MM,

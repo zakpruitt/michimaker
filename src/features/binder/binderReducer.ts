@@ -1,10 +1,7 @@
 /**
- * State transitions for the binder, as a pure reducer.
- *
- * Rough Java analogy: a command handler. Each BinderAction is a command
- * object, and the reducer applies it immutably to produce the next state.
- * All validation with user feedback happens one layer up in BinderContext
- * (the "service layer"); the reducer only guards against illegal states.
+ * State transitions for the binder, as a pure reducer. Validation with user
+ * feedback happens one layer up in BinderContext; the reducer only guards
+ * against illegal states.
  */
 import {
   DEFAULT_BINDER_TITLE,

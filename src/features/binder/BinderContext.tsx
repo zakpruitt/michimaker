@@ -11,9 +11,8 @@
  *  - useBinderActions() → the operations; the object is stable for the whole
  *                         app lifetime, so subscribing costs nothing
  *
- * Rough Java analogy: a session-scoped @Service (the actions) plus two
- * read-only views of its state. Actions validate, surface inline notices on
- * failure, and dispatch commands to binderReducer. The provider also owns:
+ * Actions validate, surface inline notices on failure, and dispatch
+ * commands to binderReducer. The provider also owns:
  *
  *  - initial load precedence: share-link URL > localStorage auto-save > empty
  *  - debounced auto-save to localStorage (flushed when the tab closes)

@@ -1,17 +1,9 @@
 /**
- * Pure grid math for the binder. No React in here.
- *
- * Responsibilities:
- *  - expanding a GridRect into the individual pockets it covers,
- *  - validating that a rect is a legal art span (in bounds, only crosses the
- *    spread gutter, never a "page turn" boundary),
- *  - building the pocket → content lookup used by the renderer,
- *  - re-anchoring art placements when pages are inserted or deleted.
- *
- * Pages are 3 rows by 3 or 4 columns (9- vs 12-pocket binders), so every
- * function that reasons about page edges takes the binder's column count.
- *
- * Rough Java analogy: a static utility class over the domain model.
+ * Pure grid math for the binder: expanding a GridRect into pockets,
+ * validating art spans, building the pocket → content lookup, and
+ * re-anchoring placements when pages are inserted or deleted. Pages are
+ * 3 rows by 3 or 4 columns, so every function that reasons about page
+ * edges takes the binder's column count.
  */
 import {
   ROWS_PER_PAGE,
