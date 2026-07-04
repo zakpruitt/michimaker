@@ -1,0 +1,23 @@
+/**
+ * Application entry point: mounts the React tree and pulls in the global
+ * stylesheets (design tokens + the printable cut guide rules).
+ */
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App";
+import { installDomainCssVariables } from "./domainCssVariables";
+import "./index.css";
+import "./features/print/print.css";
+
+installDomainCssVariables();
+
+const rootElement = document.getElementById("root");
+if (rootElement === null) {
+  throw new Error("Root element #root is missing from index.html");
+}
+
+createRoot(rootElement).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
