@@ -32,12 +32,12 @@ export function ArtPanel() {
   const [searchQuery, setSearchQuery] = useState("");
   const [artPage, setArtPage] = useState(0);
 
-  const categories = useMemo(() => {
-    const galleryCategories = listCategories(galleryArt);
-    return uploads.length > 0
-      ? [ALL_CATEGORIES, UPLOADS_CATEGORY, ...galleryCategories]
-      : [ALL_CATEGORIES, ...galleryCategories];
-  }, [galleryArt, uploads.length]);
+  // Uploads is always present so there is a permanent home for your own
+  // images, even before the first upload.
+  const categories = useMemo(
+    () => [ALL_CATEGORIES, UPLOADS_CATEGORY, ...listCategories(galleryArt)],
+    [galleryArt]
+  );
 
   const visibleArt = useMemo(() => {
     let art = [...uploads, ...galleryArt];
@@ -101,19 +101,6 @@ export function ArtPanel() {
 
   return (
     <div className={styles.panel}>
-      <div className={styles.uploadSection}>
-        <label className={styles.uploadButton}>
-          Upload an image…
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleUploadChange}
-            className={styles.uploadInput}
-          />
-        </label>
-        <p className={styles.uploadHint}>Images stay in your browser.</p>
-      </div>
-
       <p className={styles.placementHint}>
         {selection !== null && selectionIsPlaceable
           ? "Click a piece below to fill the selected region."
@@ -152,11 +139,28 @@ export function ArtPanel() {
         ))}
       </div>
 
+      {activeCategory === UPLOADS_CATEGORY && (
+        <div className={styles.uploadSection}>
+          <label className={styles.uploadButton}>
+            Upload an image…
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleUploadChange}
+              className={styles.uploadInput}
+            />
+          </label>
+          <p className={styles.uploadHint}>Images are not uploaded to a server.</p>
+        </div>
+      )}
+
       {visibleArt.length === 0 ? (
-        <p className={styles.placementHint}>
+        <p className={styles.emptyHint}>
           {searchQuery.trim() !== ""
             ? `No art matches "${searchQuery.trim()}".`
-            : "No art here yet. Upload an image above, or add entries to src/data/art-gallery.json."}
+            : activeCategory === UPLOADS_CATEGORY
+              ? "Nothing uploaded yet. Use the upload button above."
+              : "No art here yet. Add entries to src/data/art-gallery.json, or upload your own under Uploads."}
         </p>
       ) : (
         <div className={styles.list}>

@@ -1,13 +1,18 @@
+/* min-height 100% so empty-state messages can center in the leftover space. */
 .panel {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 100%;
 }
 
+/* Full-width upload button with the privacy note right-aligned beneath it.
+   Extra top margin sets it apart from the category chips above. */
 .uploadSection {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  margin-top: 8px;
 }
 
 .uploadButton {
@@ -37,6 +42,7 @@
   margin: 0;
   font-size: 0.75rem;
   color: var(--color-text-muted);
+  text-align: right;
 }
 
 .placementHint {
@@ -44,6 +50,17 @@
   font-size: 0.83rem;
   line-height: 1.4;
   color: var(--color-text-muted);
+}
+
+/* Centered in the blank space under the controls. */
+.emptyHint {
+  margin: auto;
+  padding: 16px 12px;
+  max-width: 30ch;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
 }
 
 .searchInput {
