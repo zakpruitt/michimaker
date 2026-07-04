@@ -1,0 +1,180 @@
+.spreadList {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* Each spread scales to fit the visible binder area, like the side panel:
+   its width is capped so the full spread height fits on screen. Geometry
+   (pocket width w): spreadHeight ≈ 4.19w + 96px of page/spread chrome, and
+   spreadWidth = 6w + 114px, so width ≈ (availableHeight - 96px) * 1.43 +
+   114px. The 280px = that 96px + ~184px of app chrome above the scroll
+   area. Adjust here if header/banner heights change. */
+.spread {
+  display: flex;
+  align-items: stretch;
+  background: var(--color-spread);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 10px 30px rgba(29, 78, 137, 0.25);
+  width: min(100%, calc((100vh - 280px) * 1.43 + 114px));
+  margin-inline: auto;
+}
+
+.page {
+  flex: 1;
+  min-width: 0;
+  background: var(--color-surface);
+  border-radius: 10px;
+  padding: 10px 12px 12px;
+}
+
+.gutter {
+  width: 14px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    rgba(15, 23, 42, 0.35),
+    rgba(15, 23, 42, 0.08) 45%,
+    rgba(15, 23, 42, 0.08) 55%,
+    rgba(15, 23, 42, 0.35)
+  );
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.pageValue {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin-right: auto;
+}
+
+.pageButtons {
+  display: flex;
+  gap: 4px;
+}
+
+.pageButtons button {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pageButtons button:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.pocketGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+/* Inside of the front cover: same footprint as a page, but it IS the binder
+   material, so it stays deep navy with the title embossed in the middle. */
+.cover {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background:
+    radial-gradient(120% 90% at 25% 20%, rgba(255, 255, 255, 0.08), transparent 55%),
+    linear-gradient(150deg, #17406f, #0f2f55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.coverInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 82%;
+}
+
+.coverTitleInput {
+  width: 100%;
+  padding: 6px 4px;
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-align: center;
+  outline: none;
+}
+
+.coverTitleInput::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.coverTitleInput:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+/* Piplup's beak: the one warm accent in the app. */
+.coverRule {
+  width: 56%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(to right, transparent, var(--color-beak), transparent);
+}
+
+.coverHint {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.4);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.cover:hover .coverHint,
+.cover:focus-within .coverHint {
+  opacity: 1;
+}
+
+.missingPage {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+}
+
+.addMissingPage {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.addMissingPage:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
