@@ -52,6 +52,15 @@
     color: #000;
   }
 
+  /* The app shell is viewport-locked on screen; printing needs the full
+     document height back. */
+  [data-print="app"] {
+    height: auto !important;
+    overflow: visible !important;
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
   [data-print="scroll-area"] {
     overflow: visible !important;
     max-height: none !important;

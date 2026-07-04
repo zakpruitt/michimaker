@@ -53,7 +53,7 @@ function AppLayout() {
   const [activeTab, setActiveTab] = useState<SidePanelTab>("cards");
 
   return (
-    <div className={styles.appContainer}>
+    <div className={styles.appContainer} data-print="app">
       <header className={styles.header} data-print="hide">
         <div className={styles.branding}>
           <h1 className={styles.title}>MichiMaker</h1>
