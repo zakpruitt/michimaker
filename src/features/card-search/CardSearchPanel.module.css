@@ -1,7 +1,9 @@
+/* min-height 100% so the empty-state hint can center in the leftover space. */
 .panel {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 100%;
 }
 
 .form {
@@ -94,12 +96,6 @@
   cursor: default;
 }
 
-.apiKeyHint {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  margin: 0;
-}
-
 .error {
   margin: 0;
   padding: 10px 12px;
@@ -115,6 +111,17 @@
   font-size: 0.85rem;
   color: var(--color-text-muted);
   line-height: 1.4;
+}
+
+/* Centered in the white space left under the search form. */
+.emptyHint {
+  margin: auto;
+  padding: 16px 12px;
+  max-width: 30ch;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
 }
 
 .loading {

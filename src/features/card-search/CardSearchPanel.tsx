@@ -8,7 +8,7 @@ import type { CardSummary } from "../../types/card";
 import { Pager } from "../../components/Pager";
 import { useBinderActions } from "../binder/BinderContext";
 import { setCardDragPayload } from "../binder/dragPayload";
-import { hasApiKey, searchCards } from "./pokemonTcgApi";
+import { searchCards } from "./pokemonTcgApi";
 import {
   AVAILABLE_RARITIES,
   AVAILABLE_SETS,
@@ -166,12 +166,6 @@ export function CardSearchPanel() {
         <button type="submit" className={styles.searchButton} disabled={isLoading}>
           {isLoading ? "Searching…" : "Search"}
         </button>
-
-        {!hasApiKey() && (
-          <p className={styles.apiKeyHint}>
-            Running without an API key (lower rate limits). See .env.example.
-          </p>
-        )}
       </form>
 
       {errorMessage !== null && <p className={styles.error}>{errorMessage}</p>}
@@ -187,7 +181,7 @@ export function CardSearchPanel() {
       )}
 
       {!isLoading && results === null && errorMessage === null && (
-        <p className={styles.hint}>
+        <p className={styles.emptyHint}>
           Search for cards, then click a result to place it in the selected
           pocket, or drag it straight onto a pocket.
         </p>
