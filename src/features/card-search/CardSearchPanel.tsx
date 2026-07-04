@@ -14,7 +14,7 @@ import {
   type DragEvent,
   type FormEvent,
 } from "react";
-import type { CardSummary } from "../../types/card";
+import { formatUsd, type CardSummary } from "../../types/card";
 import { Pager } from "../../components/Pager";
 import { useBinderActions } from "../binder/BinderContext";
 import { setCardDragPayload } from "../binder/dragPayload";
@@ -280,7 +280,7 @@ export function CardSearchPanel() {
                     {card.language !== null ? ` · ${languageLabel(card.language)}` : ""}
                   </p>
                   {card.marketPrice !== null && (
-                    <p className={styles.resultPrice}>${card.marketPrice.toFixed(2)}</p>
+                    <p className={styles.resultPrice}>{formatUsd(card.marketPrice)}</p>
                   )}
                 </div>
               </div>

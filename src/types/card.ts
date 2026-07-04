@@ -19,3 +19,8 @@ export interface CardSummary {
   /** Market price in USD from TCGplayer, if the API provided one. */
   marketPrice: number | null;
 }
+
+/** The app's one USD price format, e.g. "$12.34". */
+export function formatUsd(amount: number): string {
+  return `$${amount.toFixed(2)}`;
+}

@@ -5,6 +5,7 @@
  */
 import type { DragEvent, MouseEvent } from "react";
 import type { PocketColumns, PocketContent, PocketRef } from "../../types/binder";
+import { formatUsd } from "../../types/card";
 import { useBinderActions, useSelection } from "./BinderContext";
 import { computeArtCellStyle } from "./artSpanStyle";
 import {
@@ -109,7 +110,7 @@ function CardCell({ content }: { content: Extract<PocketContent, { kind: "card" 
       />
       {content.card.marketPrice !== null && (
         <span className={styles.priceTag} data-print="hide">
-          ${content.card.marketPrice.toFixed(2)}
+          {formatUsd(content.card.marketPrice)}
         </span>
       )}
     </>

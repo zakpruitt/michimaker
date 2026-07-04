@@ -10,6 +10,7 @@ import {
   type PocketContent,
   type PocketRef,
 } from "../../types/binder";
+import { formatUsd } from "../../types/card";
 import { useBinderActions, useBinderState } from "./BinderContext";
 import { useActivePrintOptions } from "../print/PrintContext";
 import { pocketKey } from "./gridMath";
@@ -57,7 +58,7 @@ export function BinderPageView({ pageIndex }: BinderPageViewProps) {
       <header className={styles.pageHeader} data-print="hide">
         <h2 className={styles.pageTitle}>Page {pageIndex + 1}</h2>
         <span className={styles.pageValue} title="Total market value of cards on this page">
-          ${pageValue.toFixed(2)}
+          {formatUsd(pageValue)}
         </span>
         <div className={styles.pageButtons} data-print="hide">
           <button

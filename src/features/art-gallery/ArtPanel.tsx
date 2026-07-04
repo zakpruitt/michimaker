@@ -7,6 +7,7 @@
  * (nothing is sent anywhere), so they survive auto-save and share links.
  */
 import { useMemo, useState, type ChangeEvent, type DragEvent } from "react";
+import { blobToDataUrl } from "../../blobToDataUrl";
 import type { ArtPiece } from "../../types/art";
 import { Pager } from "../../components/Pager";
 import { useBinderActions, useSelection } from "../binder/BinderContext";
@@ -62,7 +63,7 @@ export function ArtPanel() {
     (currentPage + 1) * ART_PER_PAGE
   );
 
-  function handleUploadChange(event: ChangeEvent<HTMLInputElement>) {
+  async function handleUploadChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     // Allow re-uploading the same file later.
     event.target.value = "";
@@ -74,25 +75,25 @@ export function ArtPanel() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const artPiece: ArtPiece = {
-        id: crypto.randomUUID(),
-        title: file.name,
-        category: UPLOADS_CATEGORY,
-        imageUrl: reader.result as string,
-        sourceUrl: null,
-      };
-      setUploads((current) => [artPiece, ...current]);
-      showNotice(
-        `Added "${file.name}". Click it (or drag it onto the binder) to place it.`,
-        "success"
-      );
-    };
-    reader.onerror = () => {
+    let imageUrl: string;
+    try {
+      imageUrl = await blobToDataUrl(file);
+    } catch {
       showNotice("The image could not be read.", "error");
+      return;
+    }
+    const artPiece: ArtPiece = {
+      id: crypto.randomUUID(),
+      title: file.name,
+      category: UPLOADS_CATEGORY,
+      imageUrl,
+      sourceUrl: null,
     };
-    reader.readAsDataURL(file);
+    setUploads((current) => [artPiece, ...current]);
+    showNotice(
+      `Added "${file.name}". Click it (or drag it onto the binder) to place it.`,
+      "success"
+    );
   }
 
   function handleThumbnailDragStart(event: DragEvent, artPiece: ArtPiece) {

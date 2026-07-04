@@ -7,6 +7,7 @@
  * happens client-side in the panel. Language lives on the set, not the card:
  * /sets is fetched once per session and cached as a set_id -> language map.
  */
+import { blobToDataUrl } from "../../blobToDataUrl";
 import type {
   PokewalletCard,
   PokewalletSearchResponse,
@@ -170,13 +171,4 @@ function extractMarketPrice(card: PokewalletCard): number | null {
     }
   }
   return null;
-}
-
-function blobToDataUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(new Error("The card image could not be read."));
-    reader.readAsDataURL(blob);
-  });
 }
