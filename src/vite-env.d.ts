@@ -2,8 +2,10 @@
 
 /** Typed access to the app's environment variables (see .env.example). */
 interface ImportMetaEnv {
-  /** Pokémon TCG API key; optional, since the API allows keyless use. */
-  readonly VITE_POKEMON_TCG_API_KEY?: string;
+  /** PokeWallet API key; required for card search. */
+  readonly VITE_POKEWALLET_API_KEY?: string;
+  /** Optional PokeWallet base URL override; defaults to the public API. */
+  readonly VITE_POKEWALLET_BASE_URL?: string;
 }
 
 interface ImportMeta {
