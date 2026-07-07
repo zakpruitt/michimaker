@@ -16,11 +16,13 @@ import {
 import {
     buildPocketContentMap,
     listCoveredPockets,
+    moveRectToPocket,
     pocketKey,
     rectArea,
     rectFromPockets,
     validateRectShape,
 } from "./gridMath";
+import type {ArtMovePayload} from "./dragPayload";
 
 export interface BinderStateValue {
     binder: Binder;
@@ -47,9 +49,13 @@ export interface BinderActions {
 
     placeCardAt(pocket: PocketRef, card: CardSummary): void;
 
+    moveCard(from: PocketRef, to: PocketRef): void;
+
     placeArtInSelection(art: ArtPiece): void;
 
     dropArtOnPocket(pocket: PocketRef, art: ArtPiece): void;
+
+    moveArt(move: ArtMovePayload, to: PocketRef): void;
 
     removeSelectionContent(): void;
 
@@ -286,6 +292,49 @@ export function BinderProvider({children}: { children: ReactNode }) {
             },
 
             placeCardAt,
+
+            moveCard(from: PocketRef, to: PocketRef): void {
+                if (pocketKey(from) === pocketKey(to)) {
+                    return;
+                }
+                const target = snapshotRef.current.pocketContents.get(pocketKey(to));
+                if (target !== undefined && target.kind === "art") {
+                    showNotice("That pocket is covered by an art span. Remove the art first.", "error");
+                    return;
+                }
+                dispatch({type: "MOVE_CARD", from, to});
+                setSelection(null);
+            },
+
+            moveArt(move: ArtMovePayload, to: PocketRef): void {
+                const {binder: currentBinder, pocketContents: contents} = snapshotRef.current;
+                const placement = currentBinder.artPlacements.find((p) => p.id === move.placementId);
+                if (placement === undefined) {
+                    return;
+                }
+                const columns = currentBinder.pocketColumns;
+                const rect = moveRectToPocket(placement.rect, move.rowOffset, move.columnOffset, to, columns);
+                if (rect === null) {
+                    showNotice("The art does not fit there.", "error");
+                    return;
+                }
+                const shapeError = validateRectShape(rect, currentBinder.pages.length, columns);
+                if (shapeError !== null) {
+                    showNotice(shapeError, "error");
+                    return;
+                }
+                const ownKeys = new Set(listCoveredPockets(placement.rect, columns).map(pocketKey));
+                const isBlocked = listCoveredPockets(rect, columns).some((pocket) => {
+                    const key = pocketKey(pocket);
+                    return !ownKeys.has(key) && contents.has(key);
+                });
+                if (isBlocked) {
+                    showNotice("The art would land on existing cards or art.", "error");
+                    return;
+                }
+                dispatch({type: "MOVE_ART", placementId: placement.id, rect});
+                setSelection(rect);
+            },
 
             placeCardFromSearch(card: CardSummary): void {
                 const {selection: currentSelection} = snapshotRef.current;

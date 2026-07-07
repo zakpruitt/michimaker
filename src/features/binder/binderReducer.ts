@@ -4,6 +4,7 @@ import {
     type BinderPageData,
     DEFAULT_BINDER_TITLE,
     DEFAULT_POCKET_COLUMNS,
+    type GridRect,
     type PocketColumns,
     type PocketRef,
     pocketsPerPage,
@@ -18,8 +19,10 @@ export type BinderAction =
     | { type: "ADD_PAGE_AFTER"; pageIndex: number }
     | { type: "DELETE_PAGE"; pageIndex: number }
     | { type: "PLACE_CARD"; pocket: PocketRef; card: CardSummary }
+    | { type: "MOVE_CARD"; from: PocketRef; to: PocketRef }
     | { type: "CLEAR_POCKET"; pocket: PocketRef }
     | { type: "PLACE_ART"; placement: ArtPlacement }
+    | { type: "MOVE_ART"; placementId: string; rect: GridRect }
     | { type: "REMOVE_ART_PLACEMENT"; placementId: string };
 
 export function createEmptyPage(columns: PocketColumns): BinderPageData {
@@ -219,6 +222,23 @@ export function binderReducer(binder: Binder, action: BinderAction): Binder {
             return withUpdatedPocket(binder, action.pocket, action.card);
         }
 
+        case "MOVE_CARD": {
+            const {from, to} = action;
+            if (findPlacementCovering(binder.artPlacements, to, binder.pocketColumns) !== null) {
+                return binder;
+            }
+            const fromCard =
+                binder.pages[from.pageIndex]?.pockets[pocketIndexOf(from, binder.pocketColumns)];
+            if (fromCard === null || fromCard === undefined) {
+                return binder;
+            }
+            const toCard =
+                binder.pages[to.pageIndex]?.pockets[pocketIndexOf(to, binder.pocketColumns)] ?? null;
+            // The vacated pocket takes whatever was at the target, so dropping
+            // onto an occupied pocket swaps the two cards.
+            return withUpdatedPocket(withUpdatedPocket(binder, to, fromCard), from, toCard);
+        }
+
         case "CLEAR_POCKET": {
             const placement = findPlacementCovering(
                 binder.artPlacements,
@@ -237,6 +257,15 @@ export function binderReducer(binder: Binder, action: BinderAction): Binder {
 
         case "PLACE_ART": {
             return {...binder, artPlacements: [...binder.artPlacements, action.placement]};
+        }
+
+        case "MOVE_ART": {
+            return {
+                ...binder,
+                artPlacements: binder.artPlacements.map((p) =>
+                    p.id === action.placementId ? {...p, rect: action.rect} : p
+                ),
+            };
         }
 
         case "REMOVE_ART_PLACEMENT": {

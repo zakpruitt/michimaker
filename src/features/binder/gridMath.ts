@@ -113,6 +113,38 @@ export function rectFromPockets(
     };
 }
 
+/**
+ * Same-shape rect re-anchored so its grabbed cell lands on target, or null
+ * when the rect would start before the top-left of the target's spread.
+ */
+export function moveRectToPocket(
+    rect: GridRect,
+    grabRowOffset: number,
+    grabColumnOffset: number,
+    target: PocketRef,
+    columns: PocketColumns
+): GridRect | null {
+    const spreadIndex = spreadIndexOfPage(target.pageIndex);
+    const targetSpreadColumn = (isLeftPage(target.pageIndex) ? 0 : columns) + target.column;
+    const anchorSpreadColumn = targetSpreadColumn - grabColumnOffset;
+    const row = target.row - grabRowOffset;
+    if (anchorSpreadColumn < 0 || row < 0) {
+        return null;
+    }
+    const startsOnRightPage = anchorSpreadColumn >= columns;
+    const pageIndex = startsOnRightPage ? spreadIndex * 2 : spreadIndex * 2 - 1;
+    if (pageIndex < 0) {
+        return null;
+    }
+    return {
+        pageIndex,
+        row,
+        column: startsOnRightPage ? anchorSpreadColumn - columns : anchorSpreadColumn,
+        rowCount: rect.rowCount,
+        columnCount: rect.columnCount,
+    };
+}
+
 /** Pockets absent from the map are empty. */
 export function buildPocketContentMap(binder: Binder): Map<string, PocketContent> {
     const contents = new Map<string, PocketContent>();

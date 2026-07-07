@@ -15,6 +15,10 @@
     border-color: var(--color-accent);
 }
 
+.pocket[draggable="true"] {
+    cursor: grab;
+}
+
 .selected {
     border: 2px solid var(--color-accent);
     box-shadow: 0 0 0 3px var(--color-accent-soft);

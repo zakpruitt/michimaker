@@ -3,7 +3,17 @@ import type {PocketColumns, PocketContent, PocketRef} from "../../types/binder";
 import {formatUsd} from "../../types/card";
 import {useBinderActions, useSelection} from "./BinderContext";
 import {computeArtCellStyle} from "./artSpanStyle";
-import {dragPayloadHasArt, dragPayloadHasCard, readArtDragPayload, readCardDragPayload,} from "./dragPayload";
+import {
+    dragPayloadHasArt,
+    dragPayloadHasCard,
+    dragPayloadHasMove,
+    readArtDragPayload,
+    readArtMovePayload,
+    readCardDragPayload,
+    readCardMovePayload,
+    setArtMovePayload,
+    setCardMovePayload,
+} from "./dragPayload";
 import {pocketKey, rectArea} from "./gridMath";
 import {useImageAspectRatio} from "./useImageAspectRatio";
 import styles from "./PocketView.module.css";
@@ -17,8 +27,14 @@ interface PocketViewProps {
 
 export function PocketView({pocket, content, columns}: PocketViewProps) {
     const {selection, selectedPocketKeys, selectionIsPlaceable} = useSelection();
-    const {handlePocketMouseDown, handlePocketMouseEnter, placeCardAt, dropArtOnPocket} =
-        useBinderActions();
+    const {
+        handlePocketMouseDown,
+        handlePocketMouseEnter,
+        placeCardAt,
+        moveCard,
+        dropArtOnPocket,
+        moveArt,
+    } = useBinderActions();
 
     const isSelected = selectedPocketKeys.has(pocketKey(pocket));
     // A multi-pocket selection that overlaps existing content can't take art;
@@ -34,15 +50,33 @@ export function PocketView({pocket, content, columns}: PocketViewProps) {
         if (event.button !== 0) {
             return;
         }
-        // Prevent native image-drag/text-select from hijacking drag-selection.
-        event.preventDefault();
+        // Empty pockets prevent text-select from hijacking drag-selection;
+        // filled pockets keep the default so a move drag can start.
+        if (content.kind === "empty") {
+            event.preventDefault();
+        }
         handlePocketMouseDown(pocket);
+    }
+
+    function handleDragStart(event: DragEvent) {
+        if (content.kind === "card") {
+            setCardMovePayload(event, pocket);
+        } else if (content.kind === "art") {
+            setArtMovePayload(event, {
+                placementId: content.placement.id,
+                rowOffset: content.rowOffset,
+                columnOffset: content.columnOffset,
+            });
+        }
     }
 
     function handleDragOver(event: DragEvent) {
         if (dragPayloadHasCard(event) || dragPayloadHasArt(event)) {
             event.preventDefault();
             event.dataTransfer.dropEffect = "copy";
+        } else if (dragPayloadHasMove(event)) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
         }
     }
 
@@ -56,6 +90,16 @@ export function PocketView({pocket, content, columns}: PocketViewProps) {
         const art = readArtDragPayload(event);
         if (art !== null) {
             dropArtOnPocket(pocket, art);
+            return;
+        }
+        const cardFrom = readCardMovePayload(event);
+        if (cardFrom !== null) {
+            moveCard(cardFrom, pocket);
+            return;
+        }
+        const artMove = readArtMovePayload(event);
+        if (artMove !== null) {
+            moveArt(artMove, pocket);
         }
     }
 
@@ -72,6 +116,8 @@ export function PocketView({pocket, content, columns}: PocketViewProps) {
             className={classNames.join(" ")}
             data-print="pocket"
             data-print-content={content.kind}
+            draggable={content.kind !== "empty"}
+            onDragStart={handleDragStart}
             onMouseDown={handleMouseDown}
             // buttons === 1: only extend the drag-selection while the left button
             // is still held (protects against a missed mouseup outside the window)
