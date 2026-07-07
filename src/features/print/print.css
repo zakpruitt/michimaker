@@ -1,196 +1,170 @@
-/* Printable cut guide for the Michi method.
- *
- * When a print job runs, these rules take over: all app chrome disappears
- * and each binder page renders on its own sheet at true physical size, every
- * pocket exactly 63mm x 88mm, with dashed lines marking where to cut each
- * art piece so the slices drop straight into real pockets.
- *
- * Components opt in via data-print attributes (stable across CSS Modules'
- * hashed class names):
- *   data-print="hide"          chrome hidden while printing
- *   data-print="page"          one binder page, one sheet
- *   data-print-hidden          page excluded by the print dialog's selection
- *   data-print="pocket-grid"   the pocket grid, gaps collapsed for cutting
- *   data-print="pocket"        a pocket, forced to 63mm x 88mm
- *   data-print-content         what the pocket holds (empty / card / art)
- *   data-print="art-cell"      one pocket-sized slice of an art span
- *   data-print-cut="top ..."   which edges of that slice are cut lines
- *   data-print="art-sheets"    the ink-saving packed layout (art-only mode)
- *
- * The print dialog (features/print/PrintContext.tsx) mirrors its options
- * onto <body> classes:
- *   body.print-cut-all    cut every pocket apart (default: side-by-side art
- *                         on the same page stays connected as one strip)
- *   body.print-art-only   hide the binder, print the packed art sheets
- */
-
 @page {
-  size: A4 portrait;
-  margin: 8mm;
+    size: A4 portrait;
+    margin: 8mm;
 }
 
 /* The packed art sheets exist only on paper. */
 [data-print="art-sheets"] {
-  display: none;
+    display: none;
 }
 
 @media print {
-  body {
-    background: #fff !important;
-  }
+    body {
+        background: #fff !important;
+    }
 
-  [data-print="hide"],
-  [data-print-hidden] {
-    display: none !important;
-  }
+    [data-print="hide"],
+    [data-print-hidden] {
+        display: none !important;
+    }
 
-  .print-only {
-    display: block;
-    margin: 0 0 2mm;
-    font-size: 9pt;
-    color: #000;
-  }
+    .print-only {
+        display: block;
+        margin: 0 0 2mm;
+        font-size: 9pt;
+        color: #000;
+    }
 
-  /* The app shell is viewport-locked on screen; printing needs the full
-     document height back. */
-  [data-print="app"] {
-    height: auto !important;
-    overflow: visible !important;
-    max-width: none !important;
-    padding: 0 !important;
-  }
+    /* The app shell is viewport-locked on screen; printing needs the full
+       document height back. */
+    [data-print="app"] {
+        height: auto !important;
+        overflow: visible !important;
+        max-width: none !important;
+        padding: 0 !important;
+    }
 
-  [data-print="scroll-area"] {
-    overflow: visible !important;
-    max-height: none !important;
-    padding: 0 !important;
-  }
+    [data-print="scroll-area"] {
+        overflow: visible !important;
+        max-height: none !important;
+        padding: 0 !important;
+    }
 
-  /* Unwrap the on-screen spread chrome; pages break one per sheet. */
-  [data-print="binder-root"] {
-    display: block !important;
-  }
+    /* Unwrap the on-screen spread chrome; pages break one per sheet. */
+    [data-print="binder-root"] {
+        display: block !important;
+    }
 
-  [data-print="spread"] {
-    display: block !important;
-    background: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    border-radius: 0 !important;
-    /* Undo the on-screen fit-to-viewport width cap. */
-    width: auto !important;
-    margin: 0 !important;
-  }
+    [data-print="spread"] {
+        display: block !important;
+        background: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        /* Undo the on-screen fit-to-viewport width cap. */
+        width: auto !important;
+        margin: 0 !important;
+    }
 
-  [data-print="page"] {
-    page-break-after: always;
-    break-after: page;
-    background: #fff !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
-    width: auto !important;
-  }
+    [data-print="page"] {
+        page-break-after: always;
+        break-after: page;
+        background: #fff !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        width: auto !important;
+    }
 
-  /* True physical size, no gaps: the grid lines ARE the cut lines. The
-     dimensions come from the domain constants in types/binder.ts via the
-     CSS variables installed by src/domainCssVariables.ts. */
-  [data-print="pocket-grid"] {
-    display: grid !important;
-    grid-template-columns: var(--print-pocket-grid-columns) !important;
-    grid-auto-rows: var(--pocket-height) !important;
-    gap: 0 !important;
-    justify-content: center;
-  }
+    /* True physical size, no gaps: the grid lines ARE the cut lines. The
+       dimensions come from the domain constants in types/binder.ts via the
+       CSS variables installed by src/domainCssVariables.ts. */
+    [data-print="pocket-grid"] {
+        display: grid !important;
+        grid-template-columns: var(--print-pocket-grid-columns) !important;
+        grid-auto-rows: var(--pocket-height) !important;
+        gap: 0 !important;
+        justify-content: center;
+    }
 
-  [data-print="pocket"] {
-    aspect-ratio: auto !important;
-    width: var(--pocket-width) !important;
-    height: var(--pocket-height) !important;
-    border: 0.3mm dashed #555 !important;
-    border-radius: 0 !important;
-    background: #fff !important;
-    box-shadow: none !important;
-    /* 12-pocket pages overflow one sheet; break between rows, not inside
-       a pocket. */
-    break-inside: avoid;
-  }
+    [data-print="pocket"] {
+        aspect-ratio: auto !important;
+        width: var(--pocket-width) !important;
+        height: var(--pocket-height) !important;
+        border: 0.3mm dashed #555 !important;
+        border-radius: 0 !important;
+        background: #fff !important;
+        box-shadow: none !important;
+        /* 12-pocket pages overflow one sheet; break between rows, not inside
+           a pocket. */
+        break-inside: avoid;
+    }
 
-  /* Pockets covered by art lose their own border so adjacent slices truly
-     touch (and each slice is exactly pocket-sized); the art-cell cut lines
-     below are the only lines over art. */
-  [data-print="pocket"][data-print-content="art"] {
-    border: none !important;
-  }
+    /* Pockets covered by art lose their own border so adjacent slices truly
+       touch (and each slice is exactly pocket-sized); the art-cell cut lines
+       below are the only lines over art. */
+    [data-print="pocket"][data-print-content="art"] {
+        border: none !important;
+    }
 
-  /* Cut lines over the art.
-   *
-   * Default (connected strips): each slice draws dashed borders only on the
-   * edges listed in data-print-cut, so side-by-side slices of the same piece
-   * on the same page print as one uncut strip. Rows are always separated,
-   * and a span crossing the spread gutter is cut at the gutter.
-   *
-   * background-origin/clip: border-box keeps the slice's crop math intact,
-   * since the border would otherwise shrink the background positioning area.
-   */
-  [data-print="art-cell"] {
-    border: 0 dashed #000;
-    background-origin: border-box !important;
-    background-clip: border-box !important;
-  }
+    /* Cut lines over the art.
+     *
+     * Default (connected strips): each slice draws dashed borders only on the
+     * edges listed in data-print-cut, so side-by-side slices of the same piece
+     * on the same page print as one uncut strip. Rows are always separated,
+     * and a span crossing the spread gutter is cut at the gutter.
+     *
+     * background-origin/clip: border-box keeps the slice's crop math intact,
+     * since the border would otherwise shrink the background positioning area.
+     */
+    [data-print="art-cell"] {
+        border: 0 dashed #000;
+        background-origin: border-box !important;
+        background-clip: border-box !important;
+    }
 
-  [data-print="art-cell"][data-print-cut~="top"] {
-    border-top-width: 0.5mm;
-  }
+    [data-print="art-cell"][data-print-cut~="top"] {
+        border-top-width: 0.5mm;
+    }
 
-  [data-print="art-cell"][data-print-cut~="bottom"] {
-    border-bottom-width: 0.5mm;
-  }
+    [data-print="art-cell"][data-print-cut~="bottom"] {
+        border-bottom-width: 0.5mm;
+    }
 
-  [data-print="art-cell"][data-print-cut~="left"] {
-    border-left-width: 0.5mm;
-  }
+    [data-print="art-cell"][data-print-cut~="left"] {
+        border-left-width: 0.5mm;
+    }
 
-  [data-print="art-cell"][data-print-cut~="right"] {
-    border-right-width: 0.5mm;
-  }
+    [data-print="art-cell"][data-print-cut~="right"] {
+        border-right-width: 0.5mm;
+    }
 
-  /* "Cut everything" mode: every slice gets a full outline instead. */
-  body.print-cut-all [data-print="art-cell"] {
-    border: none;
-    outline: 0.5mm dashed #000;
-    outline-offset: -0.5mm;
-  }
+    /* "Cut everything" mode: every slice gets a full outline instead. */
+    body.print-cut-all [data-print="art-cell"] {
+        border: none;
+        outline: 0.5mm dashed #000;
+        outline-offset: -0.5mm;
+    }
 
-  /* Art-only mode: the binder disappears, the packed sheets print instead. */
-  body.print-art-only [data-print="binder-root"] {
-    display: none !important;
-  }
+    /* Art-only mode: the binder disappears, the packed sheets print instead. */
+    body.print-art-only [data-print="binder-root"] {
+        display: none !important;
+    }
 
-  body.print-art-only [data-print="art-sheets"] {
-    display: block;
-  }
+    body.print-art-only [data-print="art-sheets"] {
+        display: block;
+    }
 
-  [data-print="art-sheet"] {
-    position: relative;
-    page-break-after: always;
-    break-after: page;
-  }
+    [data-print="art-sheet"] {
+        position: relative;
+        page-break-after: always;
+        break-after: page;
+    }
 
-  [data-print="piece-label"] {
-    display: flex;
-    align-items: flex-end;
-    padding-bottom: 1mm;
-    font-size: 7pt;
-    color: #333;
-    white-space: nowrap;
-    overflow: hidden;
-  }
+    [data-print="piece-label"] {
+        display: flex;
+        align-items: flex-end;
+        padding-bottom: 1mm;
+        font-size: 7pt;
+        color: #333;
+        white-space: nowrap;
+        overflow: hidden;
+    }
 
-  /* Make sure browsers actually print the art backgrounds and images. */
-  [data-print="pocket"],
-  [data-print="art-cell"],
-  [data-print="pocket"] img {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
+    /* Make sure browsers actually print the art backgrounds and images. */
+    [data-print="pocket"],
+    [data-print="art-cell"],
+    [data-print="pocket"] img {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
 }

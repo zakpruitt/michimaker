@@ -1,50 +1,46 @@
-/* Global design tokens and base styles. Component styles live in CSS Modules
-   next to their components; only truly app-wide rules belong here. */
-
 /* MichiMaker palette: Piplup blues. Light-blue sky background, deep blue
    accents, navy text, and the penguin's dark-blue body for the binder
    spread. --color-beak is the yellow-orange highlight, used sparingly. */
 :root {
-  --color-accent: #2b7dd2;
-  --color-accent-strong: #1e5fae;
-  --color-accent-soft: rgba(43, 125, 210, 0.16);
-  --color-danger: #dc2626;
-  --color-beak: #f6b73c;
+    --color-accent: #2b7dd2;
+    --color-accent-strong: #1e5fae;
+    --color-accent-soft: rgba(43, 125, 210, 0.16);
+    --color-danger: #dc2626;
+    --color-beak: #f6b73c;
 
-  --color-surface: #ffffff;
-  --color-panel: #f4f9fd;
-  --color-pocket: #eaf3fb;
-  --color-spread: #1d4e89;
-  --color-border: #c9ddef;
-  --color-text: #123a5e;
-  --color-text-muted: #5b7a99;
+    --color-surface: #ffffff;
+    --color-panel: #f4f9fd;
+    --color-pocket: #eaf3fb;
+    --color-spread: #1d4e89;
+    --color-border: #c9ddef;
+    --color-text: #123a5e;
+    --color-text-muted: #5b7a99;
 }
 
 * {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 html,
 body {
-  margin: 0;
-  padding: 0;
+    margin: 0;
+    padding: 0;
 }
 
 body {
-  font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", sans-serif;
-  /* Piplup sky: white-to-light-blue with soft blue washes and a faint warm
-     glow (the beak) tucked into one corner. */
-  background:
-    radial-gradient(1000px 600px at 88% -12%, rgba(88, 178, 233, 0.4), transparent 62%),
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", sans-serif;
+    /* Piplup sky: white-to-light-blue with soft blue washes and a faint warm
+       glow (the beak) tucked into one corner. */
+    background: radial-gradient(1000px 600px at 88% -12%, rgba(88, 178, 233, 0.4), transparent 62%),
     radial-gradient(900px 540px at -8% 108%, rgba(43, 125, 210, 0.28), transparent 62%),
     radial-gradient(520px 340px at 8% -6%, rgba(246, 183, 60, 0.16), transparent 65%),
     linear-gradient(180deg, #f4faff, #dcecfa);
-  background-attachment: fixed;
-  color: var(--color-text);
-  -webkit-font-smoothing: antialiased;
+    background-attachment: fixed;
+    color: var(--color-text);
+    -webkit-font-smoothing: antialiased;
 }
 
 /* Elements that only appear in the printed cut guide. */
 .print-only {
-  display: none;
+    display: none;
 }

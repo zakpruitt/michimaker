@@ -1,214 +1,213 @@
-/* min-height 100% so the empty-state hint can center in the leftover space. */
 .panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 100%;
 }
 
 .form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .field label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .field input,
 .field select {
-  padding: 8px 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  font-size: 0.9rem;
-  background: var(--color-surface);
-  color: var(--color-text);
+    padding: 8px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: var(--color-surface);
+    color: var(--color-text);
 }
 
 .field input:focus,
 .field select:focus {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 1px;
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
 }
 
 .searchRow {
-  display: flex;
-  gap: 8px;
+    display: flex;
+    gap: 8px;
 }
 
 .searchRow input {
-  flex: 1;
-  min-width: 0;
+    flex: 1;
+    min-width: 0;
 }
 
 /* Client-side narrowing of the fetched results (the API has no filter
    parameters yet): language / rarity / type / sort in a compact grid. */
 .filters {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
 }
 
 .filters select {
-  padding: 7px 8px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  font-size: 0.8rem;
-  background: var(--color-surface);
-  color: var(--color-text);
-  min-width: 0;
+    padding: 7px 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    background: var(--color-surface);
+    color: var(--color-text);
+    min-width: 0;
 }
 
 .filters select:focus {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 1px;
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
 }
 
 .resultCount {
-  grid-column: 1 / -1;
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  text-align: right;
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    text-align: right;
 }
 
 .searchButton {
-  padding: 9px 14px;
-  border: none;
-  border-radius: 8px;
-  background: var(--color-accent);
-  color: #fff;
-  font-size: 0.92rem;
-  font-weight: 600;
-  cursor: pointer;
-  flex-shrink: 0;
+    padding: 9px 14px;
+    border: none;
+    border-radius: 8px;
+    background: var(--color-accent);
+    color: #fff;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
 }
 
 .searchButton:hover:enabled {
-  background: var(--color-accent-strong);
+    background: var(--color-accent-strong);
 }
 
 .searchButton:disabled {
-  opacity: 0.6;
-  cursor: default;
+    opacity: 0.6;
+    cursor: default;
 }
 
 .error {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #fef1f1;
-  border: 1px solid #f6c6c6;
-  color: #7f1d1d;
-  font-size: 0.85rem;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fef1f1;
+    border: 1px solid #f6c6c6;
+    color: #7f1d1d;
+    font-size: 0.85rem;
 }
 
 .hint {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-  line-height: 1.4;
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    line-height: 1.4;
 }
 
 /* Centered in the white space left under the search form. */
 .emptyHint {
-  margin: auto;
-  padding: 16px 12px;
-  max-width: 30ch;
-  text-align: center;
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-  line-height: 1.5;
+    margin: auto;
+    padding: 16px 12px;
+    max-width: 30ch;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
 }
 
 .loading {
-  display: flex;
-  justify-content: center;
-  padding: 24px 0;
+    display: flex;
+    justify-content: center;
+    padding: 24px 0;
 }
 
 .spinner {
-  width: 28px;
-  height: 28px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+    width: 28px;
+    height: 28px;
+    border: 3px solid var(--color-border);
+    border-top-color: var(--color-accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .results {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
 }
 
 .resultItem {
-  display: flex;
-  gap: 10px;
-  padding: 8px;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  background: var(--color-surface);
-  cursor: pointer;
-  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+    display: flex;
+    gap: 10px;
+    padding: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-surface);
+    cursor: pointer;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 
 .resultItem:hover {
-  border-color: var(--color-accent);
-  box-shadow: 0 2px 10px rgba(43, 125, 210, 0.18);
+    border-color: var(--color-accent);
+    box-shadow: 0 2px 10px rgba(43, 125, 210, 0.18);
 }
 
 .resultItem img {
-  width: 64px;
-  height: auto;
-  border-radius: 4px;
-  flex-shrink: 0;
-  pointer-events: none;
+    width: 64px;
+    height: auto;
+    border-radius: 4px;
+    flex-shrink: 0;
+    pointer-events: none;
 }
 
 /* Shown while a result's image is still downloading. */
 .imagePlaceholder {
-  width: 64px;
-  aspect-ratio: 63 / 88;
-  border-radius: 4px;
-  border: 1px dashed var(--color-border);
-  background: var(--color-pocket);
-  flex-shrink: 0;
+    width: 64px;
+    aspect-ratio: 63 / 88;
+    border-radius: 4px;
+    border: 1px dashed var(--color-border);
+    background: var(--color-pocket);
+    flex-shrink: 0;
 }
 
 .resultDetails {
-  min-width: 0;
-  font-size: 0.82rem;
+    min-width: 0;
+    font-size: 0.82rem;
 }
 
 .resultDetails p {
-  margin: 2px 0 0;
-  color: var(--color-text-muted);
+    margin: 2px 0 0;
+    color: var(--color-text-muted);
 }
 
 .resultSet {
-  font-size: 0.76rem;
+    font-size: 0.76rem;
 }
 
 .resultPrice {
-  font-weight: 600;
-  color: #14532d;
+    font-weight: 600;
+    color: #14532d;
 }

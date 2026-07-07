@@ -1,167 +1,166 @@
-/* min-height 100% so empty-state messages can center in the leftover space. */
 .panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 100%;
 }
 
 /* Full-width upload button with the privacy note right-aligned beneath it.
    Extra top margin sets it apart from the category chips above. */
 .uploadSection {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
 }
 
 .uploadButton {
-  display: inline-block;
-  padding: 9px 12px;
-  border-radius: 10px;
-  background: var(--color-accent);
-  color: #fff;
-  font-size: 0.92rem;
-  font-weight: 600;
-  text-align: center;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(43, 125, 210, 0.35);
-  transition: filter 0.15s ease, transform 0.15s ease;
+    display: inline-block;
+    padding: 9px 12px;
+    border-radius: 10px;
+    background: var(--color-accent);
+    color: #fff;
+    font-size: 0.92rem;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(43, 125, 210, 0.35);
+    transition: filter 0.15s ease, transform 0.15s ease;
 }
 
 .uploadButton:hover {
-  filter: brightness(1.08);
-  transform: translateY(-1px);
+    filter: brightness(1.08);
+    transform: translateY(-1px);
 }
 
 .uploadInput {
-  display: none;
+    display: none;
 }
 
 .uploadHint {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  text-align: right;
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    text-align: right;
 }
 
 .placementHint {
-  margin: 0;
-  font-size: 0.83rem;
-  line-height: 1.4;
-  color: var(--color-text-muted);
+    margin: 0;
+    font-size: 0.83rem;
+    line-height: 1.4;
+    color: var(--color-text-muted);
 }
 
 /* Centered in the blank space under the controls. */
 .emptyHint {
-  margin: auto;
-  padding: 16px 12px;
-  max-width: 30ch;
-  text-align: center;
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-  line-height: 1.5;
+    margin: auto;
+    padding: 16px 12px;
+    max-width: 30ch;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
 }
 
 .searchInput {
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: 0.88rem;
-  outline: none;
-  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 
 .searchInput:focus {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent-soft);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-soft);
 }
 
 .searchInput::placeholder {
-  color: var(--color-text-muted);
+    color: var(--color-text-muted);
 }
 
 .categoryChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
 }
 
 .chip {
-  padding: 4px 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+    padding: 4px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
 }
 
 .chip:hover {
-  border-color: var(--color-accent);
+    border-color: var(--color-accent);
 }
 
 .chipActive {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-  color: #fff;
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #fff;
 }
 
 /* One piece per row, scrolling with the panel itself: no cramped inner
    scroll box. */
 .list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
 }
 
 .thumbnailCard {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .thumbnail {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-  border-radius: 10px;
-  border: 1px solid var(--color-border);
-  cursor: pointer;
-  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid var(--color-border);
+    cursor: pointer;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 
 .thumbnail:hover {
-  border-color: var(--color-accent);
-  box-shadow: 0 2px 10px rgba(43, 125, 210, 0.25);
+    border-color: var(--color-accent);
+    box-shadow: 0 2px 10px rgba(43, 125, 210, 0.25);
 }
 
 .caption {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 6px;
-  font-size: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 0.75rem;
 }
 
 .title {
-  color: var(--color-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+    color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .sourceLink {
-  color: var(--color-accent);
-  text-decoration: none;
-  flex-shrink: 0;
+    color: var(--color-accent);
+    text-decoration: none;
+    flex-shrink: 0;
 }
 
 .sourceLink:hover {
-  text-decoration: underline;
+    text-decoration: underline;
 }
