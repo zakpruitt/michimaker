@@ -1,7 +1,7 @@
 import {POCKET_HEIGHT_MM, POCKET_WIDTH_MM} from "../../types/binder";
-import {useBinderState} from "../binder/BinderContext";
-import {computeArtCellStyle} from "../binder/artSpanStyle";
-import {useImageAspectRatio} from "../binder/useImageAspectRatio";
+import {useBinderState} from "../binder/state/BinderContext";
+import {computeArtCellStyle} from "../binder/pocket/artSpanStyle";
+import {useImageAspectRatio} from "../binder/pocket/useImageAspectRatio";
 import {
     packPiecesIntoSheets,
     PIECE_LABEL_HEIGHT_MM,

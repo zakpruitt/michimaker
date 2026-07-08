@@ -6,7 +6,7 @@ import {
     type PocketContent,
     type PocketRef,
     ROWS_PER_PAGE,
-} from "../../types/binder";
+} from "../../../types/binder";
 
 /** Spread 0 is the cover plus page 0 on the right; spread s pairs pages (2s-1, 2s). */
 export function spreadIndexOfPage(pageIndex: number): number {

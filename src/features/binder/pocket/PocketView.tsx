@@ -1,7 +1,7 @@
 import type {DragEvent, MouseEvent} from "react";
-import type {PocketColumns, PocketContent, PocketRef} from "../../types/binder";
-import {formatUsd} from "../../types/card";
-import {useBinderActions, useSelection} from "./BinderContext";
+import type {PocketColumns, PocketContent, PocketRef} from "../../../types/binder";
+import {formatUsd} from "../../../types/card";
+import {useBinderActions, useSelection} from "../state/BinderContext";
 import {computeArtCellStyle} from "./artSpanStyle";
 import {
     dragPayloadHasArt,
@@ -14,7 +14,7 @@ import {
     setArtMovePayload,
     setCardMovePayload,
 } from "./dragPayload";
-import {pocketKey, rectArea} from "./gridMath";
+import {pocketKey, rectArea} from "../state/gridMath";
 import {useImageAspectRatio} from "./useImageAspectRatio";
 import styles from "./PocketView.module.css";
 

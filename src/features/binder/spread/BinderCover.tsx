@@ -1,4 +1,4 @@
-import {useBinderActions, useBinderState} from "./BinderContext";
+import {useBinderActions, useBinderState} from "../state/BinderContext";
 import styles from "./BinderSpread.module.css";
 
 export function BinderCover() {

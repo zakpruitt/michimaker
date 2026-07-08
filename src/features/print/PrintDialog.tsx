@@ -1,5 +1,5 @@
 import {useState} from "react";
-import {useBinderState} from "../binder/BinderContext";
+import {useBinderState} from "../binder/state/BinderContext";
 import type {PrintOptions} from "./PrintContext";
 import {splitPlacementsIntoPieces} from "./packArtSheets";
 import styles from "./PrintDialog.module.css";

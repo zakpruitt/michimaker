@@ -1,11 +1,11 @@
 import {createContext, type ReactNode, useContext, useEffect, useMemo, useReducer, useRef, useState,} from "react";
-import type {ArtPiece} from "../../types/art";
-import type {Binder, GridRect, PocketColumns, PocketContent, PocketRef,} from "../../types/binder";
-import type {CardSummary} from "../../types/card";
-import {useNotices} from "../../components/notices/NoticeContext";
-import {applyPocketColumnsCssVariables} from "../../domainCssVariables";
-import {loadBinderFromLocalStorage, saveBinderToLocalStorage} from "../sharing/storage";
-import {readBinderFromCurrentUrl, removeShareParamFromUrl} from "../sharing/shareLink";
+import type {ArtPiece} from "../../../types/art";
+import type {Binder, GridRect, PocketColumns, PocketContent, PocketRef,} from "../../../types/binder";
+import type {CardSummary} from "../../../types/card";
+import {useNotices} from "../../../components/notices/NoticeContext";
+import {applyPocketColumnsCssVariables} from "../../../domainCssVariables";
+import {loadBinderFromLocalStorage, saveBinderToLocalStorage} from "../../sharing/storage";
+import {readBinderFromCurrentUrl, removeShareParamFromUrl} from "../../sharing/shareLink";
 import {
     binderReducer,
     createDefaultBinder,
@@ -22,7 +22,7 @@ import {
     rectFromPockets,
     validateRectShape,
 } from "./gridMath";
-import type {ArtMovePayload} from "./dragPayload";
+import type {ArtMovePayload} from "../pocket/dragPayload";
 
 export interface BinderStateValue {
     binder: Binder;

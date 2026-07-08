@@ -1,6 +1,6 @@
-import type {ArtPiece} from "../../types/art";
-import type {PocketRef} from "../../types/binder";
-import type {CardSummary} from "../../types/card";
+import type {ArtPiece} from "../../../types/art";
+import type {PocketRef} from "../../../types/binder";
+import type {CardSummary} from "../../../types/card";
 
 const CARD_MIME_TYPE = "application/x-binder-card";
 const ART_MIME_TYPE = "application/x-binder-art";

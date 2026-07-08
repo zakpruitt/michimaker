@@ -4,12 +4,12 @@ import {
     type PocketContent,
     type PocketRef,
     ROWS_PER_PAGE,
-} from "../../types/binder";
-import {formatUsd} from "../../types/card";
-import {useBinderActions, useBinderState} from "./BinderContext";
-import {useActivePrintOptions} from "../print/PrintContext";
-import {pocketKey} from "./gridMath";
-import {PocketView} from "./PocketView";
+} from "../../../types/binder";
+import {formatUsd} from "../../../types/card";
+import {useBinderActions, useBinderState} from "../state/BinderContext";
+import {useActivePrintOptions} from "../../print/PrintContext";
+import {pocketKey} from "../state/gridMath";
+import {PocketView} from "../pocket/PocketView";
 import styles from "./BinderSpread.module.css";
 
 interface BinderPageViewProps {

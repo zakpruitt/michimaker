@@ -1,4 +1,4 @@
-import {useBinderState} from "../binder/BinderContext";
+import {useBinderState} from "../binder/state/BinderContext";
 
 export function PrintPageSetup() {
     const {binder} = useBinderState();

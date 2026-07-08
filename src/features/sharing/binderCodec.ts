@@ -6,7 +6,7 @@ import {
     DEFAULT_POCKET_COLUMNS,
     pocketsPerPage,
 } from "../../types/binder";
-import {validateRectShape} from "../binder/gridMath";
+import {validateRectShape} from "../binder/state/gridMath";
 
 /** Bumped if the persisted shape ever changes incompatibly. */
 export const BINDER_FORMAT_VERSION = 1;

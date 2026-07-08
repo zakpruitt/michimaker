@@ -1,6 +1,6 @@
 import {type ChangeEvent, useRef, useState} from "react";
 import {GITHUB_REPO_URL} from "../../appLinks";
-import {useBinderActions, useBinderState} from "../binder/BinderContext";
+import {useBinderActions, useBinderState} from "../binder/state/BinderContext";
 import {usePrintDialog} from "../print/PrintContext";
 import {useNotices} from "../../components/notices/NoticeContext";
 import {BinderDecodeError} from "./binderCodec";

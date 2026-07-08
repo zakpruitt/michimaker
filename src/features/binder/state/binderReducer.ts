@@ -8,8 +8,8 @@ import {
     type PocketColumns,
     type PocketRef,
     pocketsPerPage,
-} from "../../types/binder";
-import type {CardSummary} from "../../types/card";
+} from "../../../types/binder";
+import type {CardSummary} from "../../../types/card";
 import {findPlacementCovering, listCoveredPockets, pocketKey, remapPlacements, validateRectShape,} from "./gridMath";
 
 export type BinderAction =

@@ -1,5 +1,5 @@
 import type {CSSProperties} from "react";
-import {type GridRect, POCKET_HEIGHT_MM, POCKET_WIDTH_MM,} from "../../types/binder";
+import {type GridRect, POCKET_HEIGHT_MM, POCKET_WIDTH_MM,} from "../../../types/binder";
 
 /** Background style for one pocket-sized cell of an art span; null aspect ratio stretches to fit. */
 export function computeArtCellStyle(

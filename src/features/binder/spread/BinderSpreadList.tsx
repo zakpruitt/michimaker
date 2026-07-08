@@ -1,4 +1,4 @@
-import {useBinderActions, useBinderState} from "./BinderContext";
+import {useBinderActions, useBinderState} from "../state/BinderContext";
 import {BinderCover} from "./BinderCover";
 import {BinderPageView} from "./BinderPageView";
 import styles from "./BinderSpread.module.css";

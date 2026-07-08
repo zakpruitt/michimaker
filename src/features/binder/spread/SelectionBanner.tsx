@@ -1,5 +1,5 @@
-import {useBinderActions, useBinderState, useSelection} from "./BinderContext";
-import {listCoveredPockets, pocketKey, rectArea} from "./gridMath";
+import {useBinderActions, useBinderState, useSelection} from "../state/BinderContext";
+import {listCoveredPockets, pocketKey, rectArea} from "../state/gridMath";
 import styles from "./SelectionBanner.module.css";
 
 export function SelectionBanner() {
