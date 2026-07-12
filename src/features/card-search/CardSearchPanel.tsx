@@ -105,7 +105,7 @@ export function CardSearchPanel() {
                 continue;
             }
             pendingImageIds.current.add(card.id);
-            fetchCardImageDataUrl(card.id)
+            fetchCardImageDataUrl(card)
                 .then((dataUrl) => {
                     setImageUrls((previous) => new Map(previous).set(card.id, dataUrl));
                 })
@@ -119,7 +119,7 @@ export function CardSearchPanel() {
         let imageUrl = imageUrls.get(card.id);
         if (imageUrl === undefined) {
             try {
-                const dataUrl = await fetchCardImageDataUrl(card.id);
+                const dataUrl = await fetchCardImageDataUrl(card);
                 setImageUrls((previous) => new Map(previous).set(card.id, dataUrl));
                 imageUrl = dataUrl;
             } catch {

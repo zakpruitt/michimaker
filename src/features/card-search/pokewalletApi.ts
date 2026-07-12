@@ -14,6 +14,8 @@ export interface PokewalletSearchCard {
     language: string | null;
     /** TCGplayer market price in USD, if available. */
     marketPrice: number | null;
+    /** TCGplayer product id, used as an image fallback when PokeWallet has none. */
+    tcgplayerProductId: string | null;
 }
 
 /** API maximum; fetched in one go so client-side filters have substance. */
@@ -45,11 +47,27 @@ export async function searchCards(query: string): Promise<PokewalletSearchCard[]
     return (body.results ?? []).map((card) => toSearchCard(card, languageBySetId));
 }
 
-/** Downloads a card image with the API key and returns it as a data: URL. */
-export async function fetchCardImageDataUrl(cardId: string): Promise<string> {
-    const response = await request(`/images/${encodeURIComponent(cardId)}?size=low`);
-    const blob = await response.blob();
-    return blobToDataUrl(blob);
+/** Downloads a card image and returns it as a data: URL, trying PokeWallet then TCGplayer. */
+export async function fetchCardImageDataUrl(card: PokewalletSearchCard): Promise<string> {
+    try {
+        const response = await request(`/images/${encodeURIComponent(card.id)}?size=low`);
+        return blobToDataUrl(await response.blob());
+    } catch (error) {
+        if (card.tcgplayerProductId === null) {
+            throw error;
+        }
+        return fetchTcgplayerImageDataUrl(card.tcgplayerProductId);
+    }
+}
+
+/** 400x400 is aspect-fit (no padding) and close to PokeWallet's "low" resolution. */
+async function fetchTcgplayerImageDataUrl(productId: string): Promise<string> {
+    const url = `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(productId)}_in_400x400.jpg`;
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`The TCGplayer image returned an error (HTTP ${response.status}).`);
+    }
+    return blobToDataUrl(await response.blob());
 }
 
 function baseUrl(): string {
@@ -140,7 +158,14 @@ function toSearchCard(
         cardType: info.card_type ?? null,
         language: setId !== null ? languageBySetId.get(setId) ?? null : null,
         marketPrice: extractMarketPrice(card),
+        tcgplayerProductId: extractTcgplayerProductId(card),
     };
+}
+
+/** The search payload has no bare product id; it only appears in the product URL. */
+function extractTcgplayerProductId(card: PokewalletCard): string | null {
+    const match = card.tcgplayer?.url?.match(/\/product\/(\d+)/);
+    return match?.[1] ?? null;
 }
 
 /** First TCGplayer price only; CardMarket prices are EUR and would lie next to $ labels. */
