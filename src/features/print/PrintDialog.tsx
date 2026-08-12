@@ -21,11 +21,7 @@ export function PrintDialog({onConfirm, onCancel}: PrintDialogProps) {
         ? "all"
         : [...selectedPages].sort((a, b) => a - b);
 
-    const artPieceCount = splitPlacementsIntoPieces(
-        binder.artPlacements,
-        pageIndexes,
-        binder.pocketColumns
-    ).length;
+    const artPieceCount = splitPlacementsIntoPieces(binder, pageIndexes).length;
 
     const nothingSelected = !allPages && selectedPages.size === 0;
     const canPrint =

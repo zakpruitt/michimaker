@@ -1,4 +1,5 @@
-import {type ArtPlacement, POCKET_HEIGHT_MM, POCKET_WIDTH_MM, type PocketColumns,} from "../../types/binder";
+import {type ArtPlacement, type Binder, POCKET_HEIGHT_MM, POCKET_WIDTH_MM, type PocketColumns,} from "../../types/binder";
+import {artHoleOffsetsByPlacement, artOffsetKey} from "../binder/state/gridMath";
 
 export interface SheetDimensions {
     widthMm: number;
@@ -24,6 +25,7 @@ export interface ArtSheetPiece {
     rowOffsetEnd: number;
     widthMm: number;
     heightMm: number;
+    holes: ReadonlySet<string>;
 }
 
 export interface PositionedPiece {
@@ -37,10 +39,12 @@ export interface ArtSheet {
 }
 
 export function splitPlacementsIntoPieces(
-    placements: ArtPlacement[],
-    pageIndexes: number[] | "all",
-    columns: PocketColumns
+    binder: Binder,
+    pageIndexes: number[] | "all"
 ): ArtSheetPiece[] {
+    const placements = binder.artPlacements;
+    const columns = binder.pocketColumns;
+    const holesByPlacement = artHoleOffsetsByPlacement(binder);
     const sheet = sheetDimensionsFor(columns);
     const maxRowsPerPiece = Math.max(
         1,
@@ -50,6 +54,7 @@ export function splitPlacementsIntoPieces(
 
     for (const placement of placements) {
         const rect = placement.rect;
+        const holes = holesByPlacement.get(placement.id) ?? new Set<string>();
         const anchorPageOffsets: number[] = [];
         const facingPageOffsets: number[] = [];
         for (let offset = 0; offset < rect.columnCount; offset++) {
@@ -78,15 +83,33 @@ export function splitPlacementsIntoPieces(
                 rowStart += maxRowsPerPiece
             ) {
                 const rowEnd = Math.min(rowStart + maxRowsPerPiece, rect.rowCount) - 1;
+                const printed: { rowOffset: number; columnOffset: number }[] = [];
+                for (let rowOffset = rowStart; rowOffset <= rowEnd; rowOffset++) {
+                    for (const columnOffset of part.offsets) {
+                        if (!holes.has(artOffsetKey(rowOffset, columnOffset))) {
+                            printed.push({rowOffset, columnOffset});
+                        }
+                    }
+                }
+                if (printed.length === 0) {
+                    continue;
+                }
+                const rowOffsets = printed.map((cell) => cell.rowOffset);
+                const columnOffsets = printed.map((cell) => cell.columnOffset);
+                const trimmedRowStart = Math.min(...rowOffsets);
+                const trimmedRowEnd = Math.max(...rowOffsets);
+                const trimmedColumnStart = Math.min(...columnOffsets);
+                const trimmedColumnEnd = Math.max(...columnOffsets);
                 pieces.push({
                     placement,
                     pageIndex: part.pageIndex,
-                    columnOffsetStart: part.offsets[0],
-                    columnOffsetEnd: part.offsets[part.offsets.length - 1],
-                    rowOffsetStart: rowStart,
-                    rowOffsetEnd: rowEnd,
-                    widthMm: part.offsets.length * POCKET_WIDTH_MM,
-                    heightMm: (rowEnd - rowStart + 1) * POCKET_HEIGHT_MM,
+                    columnOffsetStart: trimmedColumnStart,
+                    columnOffsetEnd: trimmedColumnEnd,
+                    rowOffsetStart: trimmedRowStart,
+                    rowOffsetEnd: trimmedRowEnd,
+                    widthMm: (trimmedColumnEnd - trimmedColumnStart + 1) * POCKET_WIDTH_MM,
+                    heightMm: (trimmedRowEnd - trimmedRowStart + 1) * POCKET_HEIGHT_MM,
+                    holes,
                 });
             }
         }

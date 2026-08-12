@@ -1,6 +1,7 @@
 import {POCKET_HEIGHT_MM, POCKET_WIDTH_MM} from "../../types/binder";
 import {useBinderState} from "../binder/state/BinderContext";
 import {computeArtCellStyle} from "../binder/pocket/artSpanStyle";
+import {artOffsetKey} from "../binder/state/gridMath";
 import {useImageAspectRatio} from "../binder/pocket/useImageAspectRatio";
 import {
     packPiecesIntoSheets,
@@ -18,11 +19,7 @@ export function ArtOnlyPrintSheets({pageIndexes}: ArtOnlyPrintSheetsProps) {
     const {binder} = useBinderState();
 
     const sheetSize = sheetDimensionsFor(binder.pocketColumns);
-    const pieces = splitPlacementsIntoPieces(
-        binder.artPlacements,
-        pageIndexes,
-        binder.pocketColumns
-    );
+    const pieces = splitPlacementsIntoPieces(binder, pageIndexes);
     const sheets = packPiecesIntoSheets(pieces, sheetSize);
     if (sheets.length === 0) {
         return null;
@@ -63,6 +60,9 @@ function PackedPiece({positioned}: { positioned: PositionedPiece }) {
     } = piece;
     const rect = placement.rect;
     const aspectRatio = useImageAspectRatio(placement.art.imageUrl);
+
+    const isHole = (row: number, column: number) =>
+        piece.holes.has(artOffsetKey(row, column));
 
     const columnCount = columnOffsetEnd - columnOffsetStart + 1;
     const cells: { rowOffset: number; columnOffset: number }[] = [];
@@ -105,14 +105,17 @@ function PackedPiece({positioned}: { positioned: PositionedPiece }) {
                 }}
             >
                 {cells.map(({rowOffset, columnOffset}) => {
+                    if (isHole(rowOffset, columnOffset)) {
+                        return <div key={`${rowOffset}:${columnOffset}`}/>;
+                    }
                     const cutEdges = ["top"];
-                    if (rowOffset === rowOffsetEnd) {
+                    if (rowOffset === rowOffsetEnd || isHole(rowOffset + 1, columnOffset)) {
                         cutEdges.push("bottom");
                     }
-                    if (columnOffset === columnOffsetStart) {
+                    if (columnOffset === columnOffsetStart || isHole(rowOffset, columnOffset - 1)) {
                         cutEdges.push("left");
                     }
-                    if (columnOffset === columnOffsetEnd) {
+                    if (columnOffset === columnOffsetEnd || isHole(rowOffset, columnOffset + 1)) {
                         cutEdges.push("right");
                     }
                     return (

@@ -50,4 +50,10 @@ export interface Binder {
 export type PocketContent =
     | { kind: "empty" }
     | { kind: "card"; card: CardSummary }
-    | { kind: "art"; placement: ArtPlacement; rowOffset: number; columnOffset: number };
+    | {
+    kind: "art";
+    placement: ArtPlacement;
+    rowOffset: number;
+    columnOffset: number;
+    holes: ReadonlySet<string>;
+};

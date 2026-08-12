@@ -54,13 +54,23 @@ export function HowToPage() {
                     <span className={styles.stepNumber}>3</span> Plan an art span
                 </h2>
                 <p>
-                    Drag across empty pockets, spreadsheet-style, to select a
+                    Drag across pockets, spreadsheet-style, to select a
                     rectangular region. It can cross the middle of a spread, which is
                     how classic Michi art flows over both facing pages. Then open the
                     <strong> Art</strong> tab and click a piece (or upload your own,
                     which never leaves your browser) to fill the region. Click any part
                     of placed art to select the whole span; <strong>Remove</strong>
                     {" "}deletes it.
+                </p>
+                <p>
+                    Cards and art share the same pockets. Drop a card into any pocket
+                    inside a span and it sits on top: the picture keeps its full
+                    rectangle, so it stays centered and lined up, and the card simply
+                    punches a hole out of it. That is how you get a shape like the top
+                    row plus two pockets of the middle row, with a card filling the
+                    rest. Pull the card back out and the art underneath reappears.
+                    Printing skips the hidden slices, so no ink goes on paper you will
+                    never see.
                 </p>
                 <figure className={styles.figure} aria-hidden="true">
                     <div className={styles.mockSpread}>

@@ -106,21 +106,7 @@ export function planPocketColumnsChange(
         return {pockets};
     });
 
-    const occupiedKeys = new Set<string>();
-    pages.forEach((page, pageIndex) => {
-        page.pockets.forEach((card, index) => {
-            if (card !== null) {
-                occupiedKeys.add(
-                    pocketKey({
-                        pageIndex,
-                        row: Math.floor(index / newColumns),
-                        column: index % newColumns,
-                    })
-                );
-            }
-        });
-    });
-
+    const coveredKeys = new Set<string>();
     const artPlacements: ArtPlacement[] = [];
     const droppedTitles: string[] = [];
     for (const placement of binder.artPlacements) {
@@ -129,11 +115,11 @@ export function planPocketColumnsChange(
             continue;
         }
         const covered = listCoveredPockets(placement.rect, newColumns).map(pocketKey);
-        if (covered.some((key) => occupiedKeys.has(key))) {
+        if (covered.some((key) => coveredKeys.has(key))) {
             droppedTitles.push(placement.art.title);
             continue;
         }
-        covered.forEach((key) => occupiedKeys.add(key));
+        covered.forEach((key) => coveredKeys.add(key));
         artPlacements.push(placement);
     }
 
@@ -197,20 +183,11 @@ export function binderReducer(binder: Binder, action: BinderAction): Binder {
         }
 
         case "PLACE_CARD": {
-            if (
-                findPlacementCovering(binder.artPlacements, action.pocket, binder.pocketColumns) !==
-                null
-            ) {
-                return binder;
-            }
             return withUpdatedPocket(binder, action.pocket, action.card);
         }
 
         case "MOVE_CARD": {
             const {from, to} = action;
-            if (findPlacementCovering(binder.artPlacements, to, binder.pocketColumns) !== null) {
-                return binder;
-            }
             const fromCard =
                 binder.pages[from.pageIndex]?.pockets[pocketIndexOf(from, binder.pocketColumns)];
             if (fromCard === null || fromCard === undefined) {
@@ -222,6 +199,13 @@ export function binderReducer(binder: Binder, action: BinderAction): Binder {
         }
 
         case "CLEAR_POCKET": {
+            const card =
+                binder.pages[action.pocket.pageIndex]?.pockets[
+                    pocketIndexOf(action.pocket, binder.pocketColumns)
+                    ] ?? null;
+            if (card !== null) {
+                return withUpdatedPocket(binder, action.pocket, null);
+            }
             const placement = findPlacementCovering(
                 binder.artPlacements,
                 action.pocket,
@@ -233,7 +217,7 @@ export function binderReducer(binder: Binder, action: BinderAction): Binder {
                     artPlacements: binder.artPlacements.filter((p) => p.id !== placement.id),
                 };
             }
-            return withUpdatedPocket(binder, action.pocket, null);
+            return binder;
         }
 
         case "PLACE_ART": {

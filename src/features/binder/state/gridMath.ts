@@ -127,6 +127,66 @@ export function moveRectToPocket(
     };
 }
 
+export function artOffsetKey(rowOffset: number, columnOffset: number): string {
+    return `${rowOffset}:${columnOffset}`;
+}
+
+export function listCardPocketKeys(binder: Binder): Set<string> {
+    const keys = new Set<string>();
+    binder.pages.forEach((page, pageIndex) => {
+        page.pockets.forEach((card, pocketIndex) => {
+            if (card !== null) {
+                keys.add(
+                    pocketKey({
+                        pageIndex,
+                        row: Math.floor(pocketIndex / binder.pocketColumns),
+                        column: pocketIndex % binder.pocketColumns,
+                    })
+                );
+            }
+        });
+    });
+    return keys;
+}
+
+export function artHoleOffsets(
+    rect: GridRect,
+    columns: PocketColumns,
+    cardPocketKeys: ReadonlySet<string>
+): Set<string> {
+    const holes = new Set<string>();
+    listCoveredPockets(rect, columns).forEach((pocket, index) => {
+        if (cardPocketKeys.has(pocketKey(pocket))) {
+            holes.add(
+                artOffsetKey(Math.floor(index / rect.columnCount), index % rect.columnCount)
+            );
+        }
+    });
+    return holes;
+}
+
+export function firstVisibleArtOffset(rect: GridRect, holes: ReadonlySet<string>): string | null {
+    for (let rowOffset = 0; rowOffset < rect.rowCount; rowOffset++) {
+        for (let columnOffset = 0; columnOffset < rect.columnCount; columnOffset++) {
+            const key = artOffsetKey(rowOffset, columnOffset);
+            if (!holes.has(key)) {
+                return key;
+            }
+        }
+    }
+    return null;
+}
+
+export function artHoleOffsetsByPlacement(binder: Binder): Map<string, ReadonlySet<string>> {
+    const cardPocketKeys = listCardPocketKeys(binder);
+    return new Map(
+        binder.artPlacements.map((placement) => [
+            placement.id,
+            artHoleOffsets(placement.rect, binder.pocketColumns, cardPocketKeys),
+        ])
+    );
+}
+
 export function buildPocketContentMap(binder: Binder): Map<string, PocketContent> {
     const contents = new Map<string, PocketContent>();
     const columns = binder.pocketColumns;
@@ -144,14 +204,22 @@ export function buildPocketContentMap(binder: Binder): Map<string, PocketContent
         });
     });
 
+    const cardPocketKeys = new Set(contents.keys());
+
     for (const placement of binder.artPlacements) {
+        const holes = artHoleOffsets(placement.rect, columns, cardPocketKeys);
         const pockets = listCoveredPockets(placement.rect, columns);
         pockets.forEach((pocket, index) => {
-            contents.set(pocketKey(pocket), {
+            const key = pocketKey(pocket);
+            if (contents.has(key)) {
+                return;
+            }
+            contents.set(key, {
                 kind: "art",
                 placement,
                 rowOffset: Math.floor(index / placement.rect.columnCount),
                 columnOffset: index % placement.rect.columnCount,
+                holes,
             });
         });
     }
@@ -174,6 +242,22 @@ export function findPlacementCovering(
         }
     }
     return null;
+}
+
+export function findPlacementMatchingRect(
+    placements: ArtPlacement[],
+    rect: GridRect
+): ArtPlacement | null {
+    return (
+        placements.find(
+            (placement) =>
+                placement.rect.pageIndex === rect.pageIndex &&
+                placement.rect.row === rect.row &&
+                placement.rect.column === rect.column &&
+                placement.rect.rowCount === rect.rowCount &&
+                placement.rect.columnCount === rect.columnCount
+        ) ?? null
+    );
 }
 
 export interface PlacementRemapResult {

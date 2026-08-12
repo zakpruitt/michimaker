@@ -14,7 +14,7 @@ import {
     setArtMovePayload,
     setCardMovePayload,
 } from "./dragPayload";
-import {pocketKey, rectArea} from "../state/gridMath";
+import {artOffsetKey, firstVisibleArtOffset, pocketKey, rectArea} from "../state/gridMath";
 import {useImageAspectRatio} from "./useImageAspectRatio";
 import styles from "./PocketView.module.css";
 
@@ -152,7 +152,7 @@ function ArtCell({
     content: Extract<PocketContent, { kind: "art" }>;
     columns: PocketColumns;
 }) {
-    const {placement, rowOffset, columnOffset} = content;
+    const {placement, rowOffset, columnOffset, holes} = content;
     const aspectRatio = useImageAspectRatio(placement.art.imageUrl);
     const backgroundStyle = computeArtCellStyle(
         placement.rect,
@@ -162,19 +162,29 @@ function ArtCell({
         aspectRatio
     );
 
-    const isAnchorCell = rowOffset === 0 && columnOffset === 0;
+    const isAnchorCell =
+        firstVisibleArtOffset(placement.rect, holes) === artOffsetKey(rowOffset, columnOffset);
 
     const absoluteColumn = placement.rect.column + columnOffset;
+    const isHole = (row: number, column: number) => holes.has(artOffsetKey(row, column));
     const cutEdges = ["top"];
-    if (rowOffset === placement.rect.rowCount - 1) {
+    if (
+        rowOffset === placement.rect.rowCount - 1 ||
+        isHole(rowOffset + 1, columnOffset)
+    ) {
         cutEdges.push("bottom");
     }
-    if (columnOffset === 0 || absoluteColumn === columns) {
+    if (
+        columnOffset === 0 ||
+        absoluteColumn === columns ||
+        isHole(rowOffset, columnOffset - 1)
+    ) {
         cutEdges.push("left");
     }
     if (
         columnOffset === placement.rect.columnCount - 1 ||
-        absoluteColumn === columns - 1
+        absoluteColumn === columns - 1 ||
+        isHole(rowOffset, columnOffset + 1)
     ) {
         cutEdges.push("right");
     }

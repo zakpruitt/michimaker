@@ -1,5 +1,5 @@
 import {useBinderActions, useBinderState, useSelection} from "../state/BinderContext";
-import {listCoveredPockets, pocketKey, rectArea} from "../state/gridMath";
+import {findPlacementMatchingRect, listCoveredPockets, pocketKey, rectArea} from "../state/gridMath";
 import styles from "./SelectionBanner.module.css";
 
 export function SelectionBanner() {
@@ -11,27 +11,28 @@ export function SelectionBanner() {
     let canRemove = false;
 
     if (selection === null) {
-        description = "Click a pocket, or drag across empty pockets for art.";
+        description = "Click a pocket, or drag across pockets for art.";
     } else {
         const anchor = listCoveredPockets(selection, binder.pocketColumns)[0];
         const anchorContent = pocketContents.get(pocketKey(anchor));
         const sizeLabel = `${selection.rowCount}×${selection.columnCount}`;
 
-        if (anchorContent === undefined || anchorContent.kind === "empty") {
-            if (rectArea(selection) === 1) {
-                description = "Empty pocket selected. Pick a card or art piece.";
-            } else if (selectionIsPlaceable) {
-                description = `${sizeLabel} region selected. Pick a piece in the Art tab.`;
-            } else {
-                description = `${sizeLabel} region overlaps existing content.`;
-            }
-        } else if (anchorContent.kind === "card") {
+        const isSinglePocket = rectArea(selection) === 1;
+        const selectedArt = findPlacementMatchingRect(binder.artPlacements, selection);
+
+        if (isSinglePocket && anchorContent?.kind === "card") {
             description = `Card: ${anchorContent.card.name}`;
             canRemove = true;
-        } else {
-            const rect = anchorContent.placement.rect;
-            description = `Art: ${anchorContent.placement.art.title} (${rect.rowCount}×${rect.columnCount})`;
+        } else if (selectedArt !== null) {
+            const rect = selectedArt.rect;
+            description = `Art: ${selectedArt.art.title} (${rect.rowCount}×${rect.columnCount})`;
             canRemove = true;
+        } else if (isSinglePocket) {
+            description = "Empty pocket selected. Pick a card or art piece.";
+        } else if (selectionIsPlaceable) {
+            description = `${sizeLabel} region selected. Pick a piece in the Art tab; cards inside it stay on top of it.`;
+        } else {
+            description = `${sizeLabel} region overlaps existing art.`;
         }
     }
 

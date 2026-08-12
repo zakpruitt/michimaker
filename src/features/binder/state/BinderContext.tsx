@@ -16,6 +16,8 @@ import {
 } from "./binderReducer";
 import {
     buildPocketContentMap,
+    findPlacementCovering,
+    findPlacementMatchingRect,
     listCoveredPockets,
     moveRectToPocket,
     pocketKey,
@@ -112,6 +114,30 @@ function singlePocketRect(pocket: PocketRef): GridRect {
     };
 }
 
+function artBlockReason(
+    rect: GridRect,
+    binder: Binder,
+    contents: Map<string, PocketContent>,
+    ownPlacementId: string | null
+): string | null {
+    const columns = binder.pocketColumns;
+    const pockets = listCoveredPockets(rect, columns);
+    const hitsOtherArt = pockets.some((pocket) => {
+        const placement = findPlacementCovering(binder.artPlacements, pocket, columns);
+        return placement !== null && placement.id !== ownPlacementId;
+    });
+    if (hitsOtherArt) {
+        return "Another art piece already covers part of that region.";
+    }
+    const everyPocketHasCard = pockets.every(
+        (pocket) => contents.get(pocketKey(pocket))?.kind === "card"
+    );
+    if (everyPocketHasCard) {
+        return "Every pocket there holds a card, so the art would be hidden completely.";
+    }
+    return null;
+}
+
 export function BinderProvider({children}: { children: ReactNode }) {
     const {showNotice} = useNotices();
 
@@ -137,10 +163,8 @@ export function BinderProvider({children}: { children: ReactNode }) {
         if (validateRectShape(selection, binder.pages.length, binder.pocketColumns) !== null) {
             return false;
         }
-        return listCoveredPockets(selection, binder.pocketColumns).every(
-            (pocket) => !pocketContents.has(pocketKey(pocket))
-        );
-    }, [selection, binder.pages.length, binder.pocketColumns, pocketContents]);
+        return artBlockReason(selection, binder, pocketContents, null) === null;
+    }, [selection, binder, pocketContents]);
 
     const snapshotRef = useRef({binder, pocketContents, selection, selectedPocketKeys, selectionIsPlaceable});
     snapshotRef.current = {binder, pocketContents, selection, selectedPocketKeys, selectionIsPlaceable};
@@ -225,14 +249,9 @@ export function BinderProvider({children}: { children: ReactNode }) {
                 showNotice(shapeError, "error");
                 return;
             }
-            const isBlocked = listCoveredPockets(rect, currentBinder.pocketColumns).some(
-                (pocket) => contents.has(pocketKey(pocket))
-            );
-            if (isBlocked) {
-                showNotice(
-                    "Art needs empty pockets. The selected region overlaps existing cards or art.",
-                    "error"
-                );
+            const blockReason = artBlockReason(rect, currentBinder, contents, null);
+            if (blockReason !== null) {
+                showNotice(blockReason, "error");
                 return;
             }
             dispatch({
@@ -243,11 +262,6 @@ export function BinderProvider({children}: { children: ReactNode }) {
         }
 
         async function placeCardAt(pocket: PocketRef, card: CardSummary): Promise<void> {
-            const content = snapshotRef.current.pocketContents.get(pocketKey(pocket));
-            if (content !== undefined && content.kind === "art") {
-                showNotice("That pocket is covered by an art span. Remove the art first.", "error");
-                return;
-            }
             let placed = card;
             if (!card.smallImageUrl.startsWith("data:")) {
                 try {
@@ -283,11 +297,6 @@ export function BinderProvider({children}: { children: ReactNode }) {
                 if (pocketKey(from) === pocketKey(to)) {
                     return;
                 }
-                const target = snapshotRef.current.pocketContents.get(pocketKey(to));
-                if (target !== undefined && target.kind === "art") {
-                    showNotice("That pocket is covered by an art span. Remove the art first.", "error");
-                    return;
-                }
                 dispatch({type: "MOVE_CARD", from, to});
                 setSelection(null);
             },
@@ -309,13 +318,9 @@ export function BinderProvider({children}: { children: ReactNode }) {
                     showNotice(shapeError, "error");
                     return;
                 }
-                const ownKeys = new Set(listCoveredPockets(placement.rect, columns).map(pocketKey));
-                const isBlocked = listCoveredPockets(rect, columns).some((pocket) => {
-                    const key = pocketKey(pocket);
-                    return !ownKeys.has(key) && contents.has(key);
-                });
-                if (isBlocked) {
-                    showNotice("The art would land on existing cards or art.", "error");
+                const blockReason = artBlockReason(rect, currentBinder, contents, placement.id);
+                if (blockReason !== null) {
+                    showNotice(blockReason, "error");
                     return;
                 }
                 dispatch({type: "MOVE_ART", placementId: placement.id, rect});
@@ -346,7 +351,7 @@ export function BinderProvider({children}: { children: ReactNode }) {
                 const {selection: currentSelection} = snapshotRef.current;
                 if (currentSelection === null) {
                     showNotice(
-                        "Select where the art goes first: click a pocket, or drag across several empty pockets for a spanning piece.",
+                        "Select where the art goes first: click a pocket, or drag across several pockets for a spanning piece.",
                         "info"
                     );
                     return;
@@ -374,13 +379,18 @@ export function BinderProvider({children}: { children: ReactNode }) {
                 }
                 const anchor = listCoveredPockets(currentSelection, currentBinder.pocketColumns)[0];
                 const content = contents.get(pocketKey(anchor));
-                if (content === undefined || content.kind === "empty") {
-                    return;
-                }
-                if (content.kind === "art") {
-                    dispatch({type: "REMOVE_ART_PLACEMENT", placementId: content.placement.id});
-                } else {
+                const isSinglePocket = rectArea(currentSelection) === 1;
+                const selectedArt = findPlacementMatchingRect(
+                    currentBinder.artPlacements,
+                    currentSelection
+                );
+
+                if (isSinglePocket && content?.kind === "card") {
                     dispatch({type: "CLEAR_POCKET", pocket: anchor});
+                } else if (selectedArt !== null) {
+                    dispatch({type: "REMOVE_ART_PLACEMENT", placementId: selectedArt.id});
+                } else {
+                    return;
                 }
                 setSelection(null);
             },
@@ -392,9 +402,7 @@ export function BinderProvider({children}: { children: ReactNode }) {
                     return;
                 }
                 setSelection(singlePocketRect(pocket));
-                if (content === undefined) {
-                    dragAnchorRef.current = pocket;
-                }
+                dragAnchorRef.current = pocket;
             },
 
             handlePocketMouseEnter(pocket: PocketRef): void {
