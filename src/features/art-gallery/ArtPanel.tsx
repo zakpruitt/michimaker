@@ -5,13 +5,14 @@ import {Pager} from "../../components/Pager";
 import {useBinderActions, useSelection} from "../binder/state/BinderContext";
 import {setArtDragPayload} from "../binder/pocket/dragPayload";
 import {useNotices} from "../../components/notices/NoticeContext";
-import {listCategories, listGalleryArt} from "./galleryData";
+import {GALLERY_ART, listCategories} from "./galleryData";
 import styles from "./ArtPanel.module.css";
 
 const ALL_CATEGORIES = "All";
 const UPLOADS_CATEGORY = "Uploads";
 
-/** Pieces per pager page: fills the panel without endless scrolling. */
+const CATEGORIES = [ALL_CATEGORIES, UPLOADS_CATEGORY, ...listCategories(GALLERY_ART)];
+
 const ART_PER_PAGE = 4;
 
 export function ArtPanel() {
@@ -19,21 +20,13 @@ export function ArtPanel() {
     const {selection, selectionIsPlaceable} = useSelection();
     const {showNotice} = useNotices();
 
-    const galleryArt = useMemo(listGalleryArt, []);
     const [uploads, setUploads] = useState<ArtPiece[]>([]);
     const [activeCategory, setActiveCategory] = useState(ALL_CATEGORIES);
     const [searchQuery, setSearchQuery] = useState("");
     const [artPage, setArtPage] = useState(0);
 
-    // Uploads is always present so there is a permanent home for your own
-    // images, even before the first upload.
-    const categories = useMemo(
-        () => [ALL_CATEGORIES, UPLOADS_CATEGORY, ...listCategories(galleryArt)],
-        [galleryArt]
-    );
-
     const visibleArt = useMemo(() => {
-        let art = [...uploads, ...galleryArt];
+        let art = [...uploads, ...GALLERY_ART];
         if (activeCategory !== ALL_CATEGORIES) {
             art = art.filter((artPiece) => artPiece.category === activeCategory);
         }
@@ -46,7 +39,7 @@ export function ArtPanel() {
             );
         }
         return art;
-    }, [uploads, galleryArt, activeCategory, searchQuery]);
+    }, [uploads, activeCategory, searchQuery]);
 
     const pageCount = Math.ceil(visibleArt.length / ART_PER_PAGE);
     const currentPage = Math.min(artPage, Math.max(0, pageCount - 1));
@@ -57,7 +50,6 @@ export function ArtPanel() {
 
     async function handleUploadChange(event: ChangeEvent<HTMLInputElement>) {
         const file = event.target.files?.[0];
-        // Allow re-uploading the same file later.
         event.target.value = "";
         if (file === undefined) {
             return;
@@ -113,7 +105,7 @@ export function ArtPanel() {
             />
 
             <div className={styles.categoryChips}>
-                {categories.map((category) => (
+                {CATEGORIES.map((category) => (
                     <button
                         key={category}
                         type="button"
