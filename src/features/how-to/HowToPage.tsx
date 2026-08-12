@@ -64,7 +64,6 @@ export function HowToPage() {
                 </p>
                 <figure className={styles.figure} aria-hidden="true">
                     <div className={styles.mockSpread}>
-                        {/* left page */}
                         <div className={styles.mockGrid}>
                             {Array.from({length: 9}, (_, i) => (
                                 <div
@@ -76,7 +75,6 @@ export function HowToPage() {
                             ))}
                         </div>
                         <div className={styles.mockGutter}/>
-                        {/* right page */}
                         <div className={styles.mockGrid}>
                             {Array.from({length: 9}, (_, i) => (
                                 <div

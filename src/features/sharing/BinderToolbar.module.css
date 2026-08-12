@@ -5,7 +5,6 @@
     flex-wrap: wrap;
 }
 
-/* 9- vs 12-pocket page toggle. */
 .layoutToggle {
     display: inline-flex;
     border: 1px solid var(--color-border);

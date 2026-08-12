@@ -20,7 +20,6 @@ export default function App() {
     const isDesktop = useIsDesktop();
     const route = useHashRoute();
 
-    // The guide is plain reading, so it works on any device.
     if (route === HOW_TO_HASH) {
         return <HowToPage/>;
     }

@@ -8,38 +8,30 @@ import {
     ROWS_PER_PAGE,
 } from "../../../types/binder";
 
-/** Spread 0 is the cover plus page 0 on the right; spread s pairs pages (2s-1, 2s). */
 export function spreadIndexOfPage(pageIndex: number): number {
     return Math.floor((pageIndex + 1) / 2);
 }
 
-/** Left-hand pages are the odd-indexed ones (1, 3, 5, ...); page 0 always
- *  sits on the right, facing the cover. */
 export function isLeftPage(pageIndex: number): boolean {
     return pageIndex % 2 === 1;
 }
 
-/** Stable map key for a pocket, e.g. "3:1:2" = page 3, row 1, column 2. */
 export function pocketKey(pocket: PocketRef): string {
     return `${pocket.pageIndex}:${pocket.row}:${pocket.column}`;
 }
 
-/** True when the rect spills past its anchor page onto the facing page. */
 export function rectCrossesGutter(rect: GridRect, columns: PocketColumns): boolean {
     return rect.column + rect.columnCount > columns;
 }
 
-/** Number of pockets covered by the rect. */
 export function rectArea(rect: GridRect): number {
     return rect.rowCount * rect.columnCount;
 }
 
-/** Expands a rect into every pocket it covers, resolving gutter overflow. */
 export function listCoveredPockets(rect: GridRect, columns: PocketColumns): PocketRef[] {
     const covered: PocketRef[] = [];
     for (let rowOffset = 0; rowOffset < rect.rowCount; rowOffset++) {
         for (let columnOffset = 0; columnOffset < rect.columnCount; columnOffset++) {
-            // Raw columns past the page edge land on the facing page.
             const rawColumn = rect.column + columnOffset;
             covered.push({
                 pageIndex: rect.pageIndex + Math.floor(rawColumn / columns),
@@ -51,7 +43,6 @@ export function listCoveredPockets(rect: GridRect, columns: PocketColumns): Pock
     return covered;
 }
 
-/** Returns a user-facing error message when the rect is not a legal span, or null when valid. */
 export function validateRectShape(
     rect: GridRect,
     pageCount: number,
@@ -79,7 +70,6 @@ export function validateRectShape(
     return null;
 }
 
-/** Smallest rect containing both pockets, or null when they sit on different spreads. */
 export function rectFromPockets(
     a: PocketRef,
     b: PocketRef,
@@ -90,8 +80,6 @@ export function rectFromPockets(
         return null;
     }
 
-    // Work in "spread columns": 0..columns-1 on the left page, then the right
-    // page's columns continue from there.
     function spreadColumn(pocket: PocketRef): number {
         return (isLeftPage(pocket.pageIndex) ? 0 : columns) + pocket.column;
     }
@@ -101,8 +89,6 @@ export function rectFromPockets(
     const firstRow = Math.min(a.row, b.row);
     const lastRow = Math.max(a.row, b.row);
 
-    // Anchor on the left page if the rect starts there, otherwise on the
-    // right. Spread s holds pages (2s-1, 2s); page 0 is spread 0's right page.
     const startsOnRightPage = firstColumn >= columns;
     return {
         pageIndex: startsOnRightPage ? spreadIndex * 2 : spreadIndex * 2 - 1,
@@ -113,10 +99,6 @@ export function rectFromPockets(
     };
 }
 
-/**
- * Same-shape rect re-anchored so its grabbed cell lands on target, or null
- * when the rect would start before the top-left of the target's spread.
- */
 export function moveRectToPocket(
     rect: GridRect,
     grabRowOffset: number,
@@ -145,7 +127,6 @@ export function moveRectToPocket(
     };
 }
 
-/** Pockets absent from the map are empty. */
 export function buildPocketContentMap(binder: Binder): Map<string, PocketContent> {
     const contents = new Map<string, PocketContent>();
     const columns = binder.pocketColumns;
@@ -178,7 +159,6 @@ export function buildPocketContentMap(binder: Binder): Map<string, PocketContent
     return contents;
 }
 
-/** Finds the art placement covering a pocket, if any. */
 export function findPlacementCovering(
     placements: ArtPlacement[],
     pocket: PocketRef,
@@ -196,18 +176,11 @@ export function findPlacementCovering(
     return null;
 }
 
-/** Result of re-anchoring placements after a page insert/delete. */
 export interface PlacementRemapResult {
     kept: ArtPlacement[];
-    /** Titles of art pieces that no longer fit and were removed. */
     droppedTitles: string[];
 }
 
-/**
- * Re-anchors art placements after pages move; mapPageIndex gives a page's new
- * index, or null when it was deleted. Placements whose geometry no longer
- * works (deleted page, split halves, flipped parity) are dropped.
- */
 export function remapPlacements(
     placements: ArtPlacement[],
     mapPageIndex: (oldPageIndex: number) => number | null,

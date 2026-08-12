@@ -23,8 +23,6 @@ export function BinderPageView({pageIndex}: BinderPageViewProps) {
     const {addPageAfter, deletePage} = useBinderActions();
     const activePrintOptions = useActivePrintOptions();
 
-    // While a print job with a page selection runs, pages left out of the
-    // selection are dropped from the printout (data-print-hidden, print.css).
     const isPrintHidden =
         activePrintOptions !== null &&
         activePrintOptions.pageIndexes !== "all" &&

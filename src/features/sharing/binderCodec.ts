@@ -8,16 +8,13 @@ import {
 } from "../../types/binder";
 import {validateRectShape} from "../binder/state/gridMath";
 
-/** Bumped if the persisted shape ever changes incompatibly. */
 export const BINDER_FORMAT_VERSION = 1;
 
-/** Envelope written to share links, localStorage, and exported files. */
 export interface BinderEnvelope {
     version: number;
     binder: Binder;
 }
 
-/** Thrown when incoming data cannot be decoded into a valid Binder. */
 export class BinderDecodeError extends Error {
 }
 
@@ -37,7 +34,6 @@ export function decodeBinderFromParam(encoded: string): Binder {
     return parseBinderJson(json);
 }
 
-/** Parses and validates envelope JSON (share links, files, localStorage). */
 export function parseBinderJson(json: string): Binder {
     let parsed: unknown;
     try {
@@ -74,7 +70,6 @@ function validateBinder(value: unknown): Binder {
     if (typeof binder.title !== "string") {
         throw new BinderDecodeError("The binder data has no title.");
     }
-    // Saves from before the 12-pocket layout have no pocketColumns field.
     const pocketColumns =
         binder.pocketColumns === 3 || binder.pocketColumns === 4
             ? binder.pocketColumns
@@ -88,7 +83,6 @@ function validateBinder(value: unknown): Binder {
     binder.pages.forEach((page) => validatePage(page, pocketsPerPage(pocketColumns)));
     binder.artPlacements.forEach(validatePlacement);
     const pages = binder.pages;
-    // Spans a hand-edited or corrupted file puts in impossible places are dropped.
     const artPlacements = binder.artPlacements.filter(
         (placement) => validateRectShape(placement.rect, pages.length, pocketColumns) === null
     );
@@ -132,10 +126,7 @@ function validatePlacement(value: unknown): asserts value is ArtPlacement {
     }
 }
 
-// base64url: standard base64 uses "+" and "/", which are unsafe in a query param.
 function toBase64Url(bytes: Uint8Array): string {
-    // Convert in chunks: String.fromCharCode(...allBytes) overflows the argument
-    // limit for large binders.
     const chunkSize = 0x8000;
     let binary = "";
     for (let offset = 0; offset < bytes.length; offset += chunkSize) {

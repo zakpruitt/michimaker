@@ -21,7 +21,6 @@ export function PrintDialog({onConfirm, onCancel}: PrintDialogProps) {
         ? "all"
         : [...selectedPages].sort((a, b) => a - b);
 
-    // Cheap enough to recompute every render: a handful of placements at most.
     const artPieceCount = splitPlacementsIntoPieces(
         binder.artPlacements,
         pageIndexes,

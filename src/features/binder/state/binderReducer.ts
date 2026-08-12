@@ -29,7 +29,6 @@ export function createEmptyPage(columns: PocketColumns): BinderPageData {
     return {pockets: Array<CardSummary | null>(pocketsPerPage(columns)).fill(null)};
 }
 
-/** Cover spread plus one full two-page spread, like a real binder. */
 export function createDefaultBinder(): Binder {
     const columns = DEFAULT_POCKET_COLUMNS;
     return {
@@ -40,15 +39,12 @@ export function createDefaultBinder(): Binder {
     };
 }
 
-/** Outcome of planning a page insert/delete before applying it. */
 export interface PageChangePlan {
     pages: BinderPageData[];
     artPlacements: ArtPlacement[];
-    /** Art that no longer lines up with its spread and had to be removed. */
     droppedTitles: string[];
 }
 
-/** Reducer and service layer share this plan, so the dropped-art warning always matches reality. */
 export function planPageInsert(binder: Binder, pageIndex: number): PageChangePlan {
     const insertIndex = pageIndex + 1;
     const pages = [
@@ -65,7 +61,6 @@ export function planPageInsert(binder: Binder, pageIndex: number): PageChangePla
     return {pages, artPlacements: remap.kept, droppedTitles: remap.droppedTitles};
 }
 
-/** Plans deleting the page at pageIndex; see planPageInsert. */
 export function planPageDelete(binder: Binder, pageIndex: number): PageChangePlan {
     const pages = binder.pages.filter((_, index) => index !== pageIndex);
     const remap = remapPlacements(
@@ -80,21 +75,13 @@ export function planPageDelete(binder: Binder, pageIndex: number): PageChangePla
     return {pages, artPlacements: remap.kept, droppedTitles: remap.droppedTitles};
 }
 
-/** Outcome of planning a 9-pocket <-> 12-pocket layout switch. */
 export interface PocketColumnsChangePlan {
     pages: BinderPageData[];
     artPlacements: ArtPlacement[];
-    /** Art that no longer fits (or would overlap after reflowing). */
     droppedTitles: string[];
-    /** Cards that sat in a column the narrower layout does not have. */
     droppedCardNames: string[];
 }
 
-/**
- * Cards keep their (row, column); cards in a column the new layout lacks are
- * dropped, as are art spans that become illegal or would overlap after
- * reflowing. The plan reports everything it removed.
- */
 export function planPocketColumnsChange(
     binder: Binder,
     newColumns: PocketColumns
@@ -119,7 +106,6 @@ export function planPocketColumnsChange(
         return {pockets};
     });
 
-    // Occupancy check against the surviving cards and already-kept spans.
     const occupiedKeys = new Set<string>();
     pages.forEach((page, pageIndex) => {
         page.pockets.forEach((card, index) => {
@@ -211,8 +197,6 @@ export function binderReducer(binder: Binder, action: BinderAction): Binder {
         }
 
         case "PLACE_CARD": {
-            // Never place a card under an art span; the service layer reports this,
-            // the reducer just refuses.
             if (
                 findPlacementCovering(binder.artPlacements, action.pocket, binder.pocketColumns) !==
                 null
@@ -234,8 +218,6 @@ export function binderReducer(binder: Binder, action: BinderAction): Binder {
             }
             const toCard =
                 binder.pages[to.pageIndex]?.pockets[pocketIndexOf(to, binder.pocketColumns)] ?? null;
-            // The vacated pocket takes whatever was at the target, so dropping
-            // onto an occupied pocket swaps the two cards.
             return withUpdatedPocket(withUpdatedPocket(binder, to, fromCard), from, toCard);
         }
 
@@ -246,7 +228,6 @@ export function binderReducer(binder: Binder, action: BinderAction): Binder {
                 binder.pocketColumns
             );
             if (placement !== null) {
-                // Art spans are one unit: clearing any covered pocket removes it all.
                 return {
                     ...binder,
                     artPlacements: binder.artPlacements.filter((p) => p.id !== placement.id),

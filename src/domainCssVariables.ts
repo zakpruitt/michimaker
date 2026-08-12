@@ -8,7 +8,6 @@ export function installDomainCssVariables(): void {
     applyPocketColumnsCssVariables(DEFAULT_POCKET_COLUMNS);
 }
 
-/** Pre-built because CSS cannot take a var() as a repeat() count. */
 export function applyPocketColumnsCssVariables(columns: PocketColumns): void {
     document.documentElement.style.setProperty(
         "--print-pocket-grid-columns",

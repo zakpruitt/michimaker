@@ -7,7 +7,6 @@ const ART_MIME_TYPE = "application/x-binder-art";
 const CARD_MOVE_MIME_TYPE = "application/x-binder-card-move";
 const ART_MOVE_MIME_TYPE = "application/x-binder-art-move";
 
-/** Which cell of the span was grabbed, so the drop keeps the grab point under the cursor. */
 export interface ArtMovePayload {
     placementId: string;
     rowOffset: number;

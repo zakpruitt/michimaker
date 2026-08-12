@@ -21,7 +21,6 @@ import styles from "./PocketView.module.css";
 interface PocketViewProps {
     pocket: PocketRef;
     content: PocketContent;
-    /** The binder's page width (3 or 4), for gutter-aware print cut lines. */
     columns: PocketColumns;
 }
 
@@ -37,9 +36,6 @@ export function PocketView({pocket, content, columns}: PocketViewProps) {
     } = useBinderActions();
 
     const isSelected = selectedPocketKeys.has(pocketKey(pocket));
-    // A multi-pocket selection that overlaps existing content can't take art;
-    // tint it as a conflict. (A single-pocket selection of a filled pocket is
-    // a normal "selected for replace/remove" state, not a conflict.)
     const isConflict =
         isSelected &&
         !selectionIsPlaceable &&
@@ -50,8 +46,6 @@ export function PocketView({pocket, content, columns}: PocketViewProps) {
         if (event.button !== 0) {
             return;
         }
-        // Empty pockets prevent text-select from hijacking drag-selection;
-        // filled pockets keep the default so a move drag can start.
         if (content.kind === "empty") {
             event.preventDefault();
         }
@@ -119,8 +113,6 @@ export function PocketView({pocket, content, columns}: PocketViewProps) {
             draggable={content.kind !== "empty"}
             onDragStart={handleDragStart}
             onMouseDown={handleMouseDown}
-            // buttons === 1: only extend the drag-selection while the left button
-            // is still held (protects against a missed mouseup outside the window)
             onMouseEnter={(event) => {
                 if (event.buttons === 1) {
                     handlePocketMouseEnter(pocket);
@@ -172,11 +164,6 @@ function ArtCell({
 
     const isAnchorCell = rowOffset === 0 && columnOffset === 0;
 
-    // Collapsed cut-line edges for the printed guide: the top of every row
-    // (plus the span's outer bottom), and the ends of each horizontal run on
-    // this physical page. A span crossing the spread gutter starts a new run
-    // on the facing page, so the gutter always gets cut edges on both sides.
-    // print.css decides whether runs stay connected or every cell is cut.
     const absoluteColumn = placement.rect.column + columnOffset;
     const cutEdges = ["top"];
     if (rowOffset === placement.rect.rowCount - 1) {

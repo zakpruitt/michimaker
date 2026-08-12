@@ -1,6 +1,5 @@
 .pocket {
     position: relative;
-    /* Physical pocket proportions, from types/binder.ts via domainCssVariables. */
     aspect-ratio: var(--pocket-aspect-ratio);
     border: 1.5px dashed var(--color-border);
     border-radius: 6px;

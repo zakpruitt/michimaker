@@ -80,8 +80,6 @@
     flex-shrink: 0;
 }
 
-/* --- CSS illustrations --------------------------------------------------- */
-
 .figure {
     margin: 14px 0 0;
     display: flex;
@@ -141,8 +139,6 @@
     background: var(--color-accent-soft);
 }
 
-/* One continuous image across three pocket widths: the outer dashed border
-   is the only cut line, exactly like the connected-strips print mode. */
 .mockStrip {
     display: flex;
     max-width: 260px;
@@ -156,8 +152,6 @@
     flex: 1;
     aspect-ratio: 63 / 88;
 }
-
-/* --- footer --------------------------------------------------------------- */
 
 .footer {
     display: flex;

@@ -13,7 +13,6 @@ export function downloadBinderAsFile(binder: Binder): void {
     URL.revokeObjectURL(objectUrl);
 }
 
-/** Resolves to the parsed binder, or rejects with BinderDecodeError. */
 export async function readBinderFromFile(file: File): Promise<Binder> {
     const json = await file.text();
     return parseBinderJson(json);

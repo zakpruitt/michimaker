@@ -4,13 +4,6 @@
     gap: 28px;
 }
 
-/* Each spread scales to fit the visible binder area, like the side panel:
-   its width is capped so the full spread height fits on screen. Geometry
-   (pocket width w): spreadHeight ≈ 4.19w + 96px of page/spread chrome, and
-   spreadWidth = 2*columns*w + 114px, so for 3 columns width ≈
-   (availableHeight - 96px) * (6/4.19) + 114px, and for 4 columns the factor
-   becomes 8/4.19. The 280px = that 96px + ~184px of app chrome above the
-   scroll area. Adjust here if header/banner heights change. */
 .spread {
     display: flex;
     align-items: stretch;
@@ -99,8 +92,6 @@
     grid-template-columns: repeat(4, 1fr);
 }
 
-/* Inside of the front cover: same footprint as a page, but it IS the binder
-   material, so it stays deep navy with the title embossed in the middle. */
 .cover {
     flex: 1;
     min-width: 0;
@@ -143,7 +134,6 @@
     border-radius: 8px;
 }
 
-/* Piplup's beak: the one warm accent in the app. */
 .coverRule {
     width: 56%;
     height: 2px;

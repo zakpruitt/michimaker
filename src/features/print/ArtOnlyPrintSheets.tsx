@@ -105,10 +105,6 @@ function PackedPiece({positioned}: { positioned: PositionedPiece }) {
                 }}
             >
                 {cells.map(({rowOffset, columnOffset}) => {
-                    // Collapsed cut lines: the top of every row, the chunk's outer
-                    // bottom (its paper edge), and the left/right ends of each row
-                    // run. The connected vs. cut-everything choice is applied by
-                    // print.css, exactly as in the full page guide.
                     const cutEdges = ["top"];
                     if (rowOffset === rowOffsetEnd) {
                         cutEdges.push("bottom");

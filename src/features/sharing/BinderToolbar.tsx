@@ -62,7 +62,6 @@ export function BinderToolbar() {
     function handleResetClick() {
         if (!isConfirmingReset) {
             setIsConfirmingReset(true);
-            // Disarm automatically if the user doesn't confirm.
             window.setTimeout(() => setIsConfirmingReset(false), 4000);
             return;
         }

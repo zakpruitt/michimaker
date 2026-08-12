@@ -5,8 +5,6 @@
     min-height: 100%;
 }
 
-/* Full-width upload button with the privacy note right-aligned beneath it.
-   Extra top margin sets it apart from the category chips above. */
 .uploadSection {
     display: flex;
     flex-direction: column;
@@ -51,7 +49,6 @@
     color: var(--color-text-muted);
 }
 
-/* Centered in the blank space under the controls. */
 .emptyHint {
     margin: auto;
     padding: 16px 12px;
@@ -110,8 +107,6 @@
     color: #fff;
 }
 
-/* One piece per row, scrolling with the panel itself: no cramped inner
-   scroll box. */
 .list {
     display: flex;
     flex-direction: column;

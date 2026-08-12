@@ -1,42 +1,31 @@
 import {type ArtPlacement, POCKET_HEIGHT_MM, POCKET_WIDTH_MM, type PocketColumns,} from "../../types/binder";
 
-/** Usable A4 area inside the @page 8mm margins, minus a rounding cushion. */
 export interface SheetDimensions {
     widthMm: number;
     heightMm: number;
 }
 
-/** 12-pocket rows (252mm) only fit A4 sideways; PrintPageSetup.tsx switches
- *  the @page orientation to match. */
 export function sheetDimensionsFor(columns: PocketColumns): SheetDimensions {
     return columns === 4
-        ? {widthMm: 278, heightMm: 186} // A4 landscape
-        : {widthMm: 193, heightMm: 278}; // A4 portrait
+        ? {widthMm: 278, heightMm: 186}
+        : {widthMm: 193, heightMm: 278};
 }
 
-/** Height reserved above each piece for its "Page N" assembly label. */
 export const PIECE_LABEL_HEIGHT_MM = 6;
 
-/** Breathing room between packed pieces so their cut lines stay distinct. */
 const PIECE_SPACING_MM = 4;
 
-/** The part of one art placement on a single binder page, chunked by rows. */
 export interface ArtSheetPiece {
     placement: ArtPlacement;
-    /** The binder page this piece slides into once cut. */
     pageIndex: number;
-    /** Inclusive column-offset range within the placement's rect. */
     columnOffsetStart: number;
     columnOffsetEnd: number;
-    /** Inclusive row-offset range within the placement's rect. */
     rowOffsetStart: number;
     rowOffsetEnd: number;
     widthMm: number;
-    /** Height of the art itself; the label strip comes on top of this. */
     heightMm: number;
 }
 
-/** A piece with its top-left position (label included) on a sheet. */
 export interface PositionedPiece {
     piece: ArtSheetPiece;
     xMm: number;
@@ -47,7 +36,6 @@ export interface ArtSheet {
     pieces: PositionedPiece[];
 }
 
-/** Splits placements into per-page, sheet-height pieces for the pages in pageIndexes. */
 export function splitPlacementsIntoPieces(
     placements: ArtPlacement[],
     pageIndexes: number[] | "all",
@@ -62,8 +50,6 @@ export function splitPlacementsIntoPieces(
 
     for (const placement of placements) {
         const rect = placement.rect;
-        // Column offsets on the anchor page vs. the facing page (absolute
-        // columns past the page edge continue across the gutter).
         const anchorPageOffsets: number[] = [];
         const facingPageOffsets: number[] = [];
         for (let offset = 0; offset < rect.columnCount; offset++) {
@@ -86,7 +72,6 @@ export function splitPlacementsIntoPieces(
             if (pageIndexes !== "all" && !pageIndexes.includes(part.pageIndex)) {
                 continue;
             }
-            // Chunk the rows so every piece fits the sheet height.
             for (
                 let rowStart = 0;
                 rowStart < rect.rowCount;
@@ -110,7 +95,6 @@ export function splitPlacementsIntoPieces(
     return pieces;
 }
 
-/** Shelf-pack pieces onto sheets. Piece heights include the label strip. */
 export function packPiecesIntoSheets(
     pieces: ArtSheetPiece[],
     sheet: SheetDimensions
@@ -131,7 +115,6 @@ export function packPiecesIntoSheets(
         const fitsOnShelf =
             current !== null && cursorXMm + piece.widthMm <= sheet.widthMm;
         if (!fitsOnShelf) {
-            // Move down to a fresh shelf; open a fresh sheet if it will not fit.
             shelfTopMm = current === null ? 0 : shelfTopMm + shelfHeightMm + PIECE_SPACING_MM;
             if (current === null || shelfTopMm + totalHeightMm > sheet.heightMm) {
                 current = {pieces: []};

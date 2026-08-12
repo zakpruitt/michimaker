@@ -7,8 +7,6 @@ export function saveBinderToLocalStorage(binder: Binder): void {
     try {
         window.localStorage.setItem(STORAGE_KEY, envelopeToJson(binder, false));
     } catch {
-        // Quota exceeded (e.g. many large uploaded images) or storage disabled.
-        // Auto-save is best-effort; the user still has file export.
     }
 }
 

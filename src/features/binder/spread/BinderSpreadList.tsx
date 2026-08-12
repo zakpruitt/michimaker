@@ -7,7 +7,6 @@ export function BinderSpreadList() {
     const {binder} = useBinderState();
     const {addPageAfter} = useBinderActions();
 
-    // Left pages of the spreads after the cover spread: 1, 3, 5, ...
     const leftPageIndexes: number[] = [];
     for (let pageIndex = 1; pageIndex < binder.pages.length; pageIndex += 2) {
         leftPageIndexes.push(pageIndex);

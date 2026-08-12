@@ -29,7 +29,6 @@ export function SelectionBanner() {
             description = `Card: ${anchorContent.card.name}`;
             canRemove = true;
         } else {
-            // anchorContent.kind === "art"
             const rect = anchorContent.placement.rect;
             description = `Art: ${anchorContent.placement.art.title} (${rect.rowCount}×${rect.columnCount})`;
             canRemove = true;

@@ -3,7 +3,6 @@
     margin: 8mm;
 }
 
-/* The packed art sheets exist only on paper. */
 [data-print="art-sheets"] {
     display: none;
 }
@@ -25,8 +24,6 @@
         color: #000;
     }
 
-    /* The app shell is viewport-locked on screen; printing needs the full
-       document height back. */
     [data-print="app"] {
         height: auto !important;
         overflow: visible !important;
@@ -40,7 +37,6 @@
         padding: 0 !important;
     }
 
-    /* Unwrap the on-screen spread chrome; pages break one per sheet. */
     [data-print="binder-root"] {
         display: block !important;
     }
@@ -51,7 +47,6 @@
         box-shadow: none !important;
         padding: 0 !important;
         border-radius: 0 !important;
-        /* Undo the on-screen fit-to-viewport width cap. */
         width: auto !important;
         margin: 0 !important;
     }
@@ -65,9 +60,6 @@
         width: auto !important;
     }
 
-    /* True physical size, no gaps: the grid lines ARE the cut lines. The
-       dimensions come from the domain constants in types/binder.ts via the
-       CSS variables installed by src/domainCssVariables.ts. */
     [data-print="pocket-grid"] {
         display: grid !important;
         grid-template-columns: var(--print-pocket-grid-columns) !important;
@@ -84,28 +76,13 @@
         border-radius: 0 !important;
         background: #fff !important;
         box-shadow: none !important;
-        /* 12-pocket pages overflow one sheet; break between rows, not inside
-           a pocket. */
         break-inside: avoid;
     }
 
-    /* Pockets covered by art lose their own border so adjacent slices truly
-       touch (and each slice is exactly pocket-sized); the art-cell cut lines
-       below are the only lines over art. */
     [data-print="pocket"][data-print-content="art"] {
         border: none !important;
     }
 
-    /* Cut lines over the art.
-     *
-     * Default (connected strips): each slice draws dashed borders only on the
-     * edges listed in data-print-cut, so side-by-side slices of the same piece
-     * on the same page print as one uncut strip. Rows are always separated,
-     * and a span crossing the spread gutter is cut at the gutter.
-     *
-     * background-origin/clip: border-box keeps the slice's crop math intact,
-     * since the border would otherwise shrink the background positioning area.
-     */
     [data-print="art-cell"] {
         border: 0 dashed #000;
         background-origin: border-box !important;
@@ -128,14 +105,12 @@
         border-right-width: 0.5mm;
     }
 
-    /* "Cut everything" mode: every slice gets a full outline instead. */
     body.print-cut-all [data-print="art-cell"] {
         border: none;
         outline: 0.5mm dashed #000;
         outline-offset: -0.5mm;
     }
 
-    /* Art-only mode: the binder disappears, the packed sheets print instead. */
     body.print-art-only [data-print="binder-root"] {
         display: none !important;
     }
@@ -160,7 +135,6 @@
         overflow: hidden;
     }
 
-    /* Make sure browsers actually print the art backgrounds and images. */
     [data-print="pocket"],
     [data-print="art-cell"],
     [data-print="pocket"] img {
