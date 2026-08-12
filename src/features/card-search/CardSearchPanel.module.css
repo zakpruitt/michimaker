@@ -51,8 +51,6 @@
     min-width: 0;
 }
 
-/* Client-side narrowing of the fetched results (the API has no filter
-   parameters yet): language / rarity / type / sort in a compact grid. */
 .filters {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -120,7 +118,6 @@
     line-height: 1.4;
 }
 
-/* Centered in the white space left under the search form. */
 .emptyHint {
     margin: auto;
     padding: 16px 12px;
@@ -177,20 +174,11 @@
 
 .resultItem img {
     width: 64px;
-    height: auto;
-    border-radius: 4px;
-    flex-shrink: 0;
-    pointer-events: none;
-}
-
-/* Shown while a result's image is still downloading. */
-.imagePlaceholder {
-    width: 64px;
     aspect-ratio: 63 / 88;
     border-radius: 4px;
-    border: 1px dashed var(--color-border);
     background: var(--color-pocket);
     flex-shrink: 0;
+    pointer-events: none;
 }
 
 .resultDetails {

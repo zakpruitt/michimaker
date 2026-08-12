@@ -2,11 +2,9 @@ import {GITHUB_REPO_URL} from "../../appLinks";
 import {POCKET_HEIGHT_MM, POCKET_WIDTH_MM} from "../../types/binder";
 import styles from "./MobileLandingPage.module.css";
 
-/** Mock spread: 3 rows × 7 grid columns (3 pockets, gutter, 3 pockets). */
 const POCKET_CELLS: Array<{ row: number; gridColumn: number; hasCard: boolean }> = [];
 for (let row = 1; row <= 3; row++) {
     for (const gridColumn of [1, 2, 3, 5, 6, 7]) {
-        // Columns 3 and 5 of the middle rows sit under the mock art span.
         const isUnderArt = gridColumn === 3 || gridColumn === 5;
         POCKET_CELLS.push({row, gridColumn, hasCard: !isUnderArt && (row + gridColumn) % 2 === 0});
     }
@@ -32,7 +30,6 @@ export function MobileLandingPage() {
                     />
                 ))}
                 <div className={styles.mockGutter}/>
-                {/* One art piece crossing the center gutter, cut lines included. */}
                 <div className={styles.mockArt}>
                     <span className={styles.mockArtLabel}>3×2 art span</span>
                 </div>
@@ -45,7 +42,7 @@ export function MobileLandingPage() {
                 </li>
                 <li>
                     <strong>Search every card</strong>: name, set, and number search
-                    backed by PokeWallet, with market prices and language filters.
+                    backed by TCGdex, with English and Japanese printings side by side.
                 </li>
                 <li>
                     <strong>Michi method art</strong>: stretch one image across any block

@@ -3,6 +3,7 @@ import type {ArtPiece} from "../../../types/art";
 import type {Binder, GridRect, PocketColumns, PocketContent, PocketRef,} from "../../../types/binder";
 import type {CardSummary} from "../../../types/card";
 import {useNotices} from "../../../components/notices/NoticeContext";
+import {urlToDataUrl} from "../../../blobToDataUrl";
 import {applyPocketColumnsCssVariables} from "../../../domainCssVariables";
 import {loadBinderFromLocalStorage, saveBinderToLocalStorage} from "../../sharing/storage";
 import {readBinderFromCurrentUrl, removeShareParamFromUrl} from "../../sharing/shareLink";
@@ -241,13 +242,22 @@ export function BinderProvider({children}: { children: ReactNode }) {
             setSelection(null);
         }
 
-        function placeCardAt(pocket: PocketRef, card: CardSummary): void {
+        async function placeCardAt(pocket: PocketRef, card: CardSummary): Promise<void> {
             const content = snapshotRef.current.pocketContents.get(pocketKey(pocket));
             if (content !== undefined && content.kind === "art") {
                 showNotice("That pocket is covered by an art span. Remove the art first.", "error");
                 return;
             }
-            dispatch({type: "PLACE_CARD", pocket, card});
+            let placed = card;
+            if (!card.smallImageUrl.startsWith("data:")) {
+                try {
+                    placed = {...card, smallImageUrl: await urlToDataUrl(card.smallImageUrl)};
+                } catch {
+                    showNotice(`The image for ${card.name} could not be downloaded.`, "error");
+                    return;
+                }
+            }
+            dispatch({type: "PLACE_CARD", pocket, card: placed});
         }
 
         return {

@@ -25,9 +25,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-        env:
-          # Repo secret (Settings > Secrets and variables > Actions). Vite bakes it into the bundle at build time.
-          VITE_POKEWALLET_API_KEY: ${{ secrets.VITE_POKEWALLET_API_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

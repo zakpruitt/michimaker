@@ -1,39 +1,39 @@
-import {type ChangeEvent, type DragEvent, type FormEvent, useEffect, useMemo, useRef, useState,} from "react";
+import {type ChangeEvent, type DragEvent, type FormEvent, useMemo, useState} from "react";
 import {type CardSummary, formatUsd} from "../../types/card";
 import {Pager} from "../../components/Pager";
 import {useBinderActions} from "../binder/state/BinderContext";
 import {setCardDragPayload} from "../binder/pocket/dragPayload";
-import {useNotices} from "../../components/notices/NoticeContext";
-import {fetchCardImageDataUrl, languageLabel, type PokewalletSearchCard, searchCards,} from "./pokewalletApi";
+import {
+    type CardLanguage,
+    cardImageUrl,
+    languageLabel,
+    type SearchCard,
+    searchCards,
+} from "./tcgdexApi";
 import styles from "./CardSearchPanel.module.css";
 
-/** null = no search yet; distinguishes the initial hint from "0 results". */
-type SearchResults = PokewalletSearchCard[] | null;
+type SearchResults = SearchCard[] | null;
 
-/** Results per pager page: fills the panel without endless scrolling. */
 const RESULTS_PER_PAGE = 6;
 
 const ANY = "";
 
-type SortOrder = "relevance" | "price-desc" | "price-asc";
+type SortOrder = "oldest" | "newest" | "price-desc" | "price-asc";
+
+const DEFAULT_SORT: SortOrder = "oldest";
 
 export function CardSearchPanel() {
     const {placeCardFromSearch} = useBinderActions();
-    const {showNotice} = useNotices();
 
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<SearchResults>(null);
     const [language, setLanguage] = useState(ANY);
     const [rarity, setRarity] = useState(ANY);
-    const [cardType, setCardType] = useState(ANY);
-    const [sortOrder, setSortOrder] = useState<SortOrder>("relevance");
+    const [category, setCategory] = useState(ANY);
+    const [sortOrder, setSortOrder] = useState<SortOrder>(DEFAULT_SORT);
     const [resultsPage, setResultsPage] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-    // Fetched card images by id. Kept across searches; ids are stable.
-    const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
-    const pendingImageIds = useRef(new Set<string>());
 
     async function handleSearchSubmit(event: FormEvent) {
         event.preventDefault();
@@ -47,8 +47,8 @@ export function CardSearchPanel() {
         setResultsPage(0);
         setLanguage(ANY);
         setRarity(ANY);
-        setCardType(ANY);
-        setSortOrder("relevance");
+        setCategory(ANY);
+        setSortOrder(DEFAULT_SORT);
         try {
             setResults(await searchCards(trimmedQuery));
         } catch (error) {
@@ -65,27 +65,15 @@ export function CardSearchPanel() {
         if (results === null) {
             return [];
         }
-        let cards = results;
-        if (language !== ANY) {
-            cards = cards.filter((card) => card.language === language);
-        }
-        if (rarity !== ANY) {
-            cards = cards.filter((card) => card.rarity === rarity);
-        }
-        if (cardType !== ANY) {
-            cards = cards.filter((card) => card.cardType === cardType);
-        }
-        if (sortOrder !== "relevance") {
-            const direction = sortOrder === "price-desc" ? -1 : 1;
-            cards = [...cards].sort((a, b) => {
-                // Priceless cards sink to the end either way.
-                if (a.marketPrice === null) return b.marketPrice === null ? 0 : 1;
-                if (b.marketPrice === null) return -1;
-                return (a.marketPrice - b.marketPrice) * direction;
-            });
-        }
+        const cards = results.filter(
+            (card) =>
+                (language === ANY || card.language === language) &&
+                (rarity === ANY || card.rarity === rarity) &&
+                (category === ANY || card.category === category)
+        );
+        cards.sort((a, b) => compareCards(a, b, sortOrder));
         return cards;
-    }, [results, language, rarity, cardType, sortOrder]);
+    }, [results, language, rarity, category, sortOrder]);
 
     const pageCount = Math.ceil(filteredResults.length / RESULTS_PER_PAGE);
     const currentPage = Math.min(resultsPage, Math.max(0, pageCount - 1));
@@ -97,46 +85,6 @@ export function CardSearchPanel() {
             ),
         [filteredResults, currentPage]
     );
-
-    // Fetch images for the visible page only; guards keep this idempotent.
-    useEffect(() => {
-        for (const card of visibleResults) {
-            if (imageUrls.has(card.id) || pendingImageIds.current.has(card.id)) {
-                continue;
-            }
-            pendingImageIds.current.add(card.id);
-            fetchCardImageDataUrl(card)
-                .then((dataUrl) => {
-                    setImageUrls((previous) => new Map(previous).set(card.id, dataUrl));
-                })
-                .catch(() => {
-                    // Leave the id in pending so a broken image is not refetched in a loop.
-                });
-        }
-    }, [visibleResults, imageUrls]);
-
-    async function handleResultClick(card: PokewalletSearchCard) {
-        let imageUrl = imageUrls.get(card.id);
-        if (imageUrl === undefined) {
-            try {
-                const dataUrl = await fetchCardImageDataUrl(card);
-                setImageUrls((previous) => new Map(previous).set(card.id, dataUrl));
-                imageUrl = dataUrl;
-            } catch {
-                showNotice("The card image is still loading. Try again in a moment.", "error");
-                return;
-            }
-        }
-        placeCardFromSearch(toCardSummary(card, imageUrl));
-    }
-
-    function handleResultDragStart(event: DragEvent, card: PokewalletSearchCard) {
-        const imageUrl = imageUrls.get(card.id);
-        if (imageUrl === undefined) {
-            return;
-        }
-        setCardDragPayload(event, toCardSummary(card, imageUrl));
-    }
 
     function updateFilter(setter: (value: string) => void) {
         return (event: ChangeEvent<HTMLSelectElement>) => {
@@ -183,9 +131,9 @@ export function CardSearchPanel() {
                             </option>
                         ))}
                     </select>
-                    <select value={cardType} onChange={updateFilter(setCardType)} aria-label="Card type">
+                    <select value={category} onChange={updateFilter(setCategory)} aria-label="Card type">
                         <option value={ANY}>Any type</option>
-                        {facets.cardTypes.map((option) => (
+                        {facets.categories.map((option) => (
                             <option key={option} value={option}>
                                 {option}
                             </option>
@@ -196,7 +144,8 @@ export function CardSearchPanel() {
                         onChange={updateFilter((value) => setSortOrder(value as SortOrder))}
                         aria-label="Sort order"
                     >
-                        <option value="relevance">Best match</option>
+                        <option value="oldest">Release: oldest first</option>
+                        <option value="newest">Release: newest first</option>
                         <option value="price-desc">Price: high to low</option>
                         <option value="price-asc">Price: low to high</option>
                     </select>
@@ -234,22 +183,18 @@ export function CardSearchPanel() {
 
             {!isLoading && visibleResults.length > 0 && (
                 <div className={styles.results}>
-                    {visibleResults.map((card) => {
-                        const imageUrl = imageUrls.get(card.id);
-                        return (
+                    {visibleResults.map((card) => (
                             <div
                                 key={card.id}
                                 className={styles.resultItem}
-                                draggable={imageUrl !== undefined}
-                                onDragStart={(event) => handleResultDragStart(event, card)}
-                                onClick={() => handleResultClick(card)}
+                                draggable
+                                onDragStart={(event: DragEvent) =>
+                                    setCardDragPayload(event, toCardSummary(card))
+                                }
+                                onClick={() => placeCardFromSearch(toCardSummary(card))}
                                 title={`${card.name}: click to place in the selected pocket`}
                             >
-                                {imageUrl !== undefined ? (
-                                    <img src={imageUrl} alt={card.name}/>
-                                ) : (
-                                    <div className={styles.imagePlaceholder} aria-hidden="true"/>
-                                )}
+                                <img src={cardImageUrl(card, "thumbnail")} alt={card.name} loading="lazy"/>
                                 <div className={styles.resultDetails}>
                                     <strong>{card.name}</strong>
                                     <p>
@@ -257,16 +202,14 @@ export function CardSearchPanel() {
                                         {card.rarity !== null ? ` · ${card.rarity}` : ""}
                                     </p>
                                     <p className={styles.resultSet}>
-                                        {card.setName}
-                                        {card.language !== null ? ` · ${languageLabel(card.language)}` : ""}
+                                        {card.setName} · {languageLabel(card.language)}
                                     </p>
                                     {card.marketPrice !== null && (
                                         <p className={styles.resultPrice}>{formatUsd(card.marketPrice)}</p>
                                     )}
                                 </div>
                             </div>
-                        );
-                    })}
+                        ))}
                     <Pager page={currentPage} pageCount={pageCount} onPageChange={setResultsPage}/>
                 </div>
             )}
@@ -274,37 +217,55 @@ export function CardSearchPanel() {
     );
 }
 
-function toCardSummary(card: PokewalletSearchCard, imageDataUrl: string): CardSummary {
+function compareCards(a: SearchCard, b: SearchCard, order: SortOrder): number {
+    if (order === "price-asc" || order === "price-desc") {
+        if (a.marketPrice === null) return b.marketPrice === null ? 0 : 1;
+        if (b.marketPrice === null) return -1;
+        return (a.marketPrice - b.marketPrice) * (order === "price-asc" ? 1 : -1);
+    }
+    if (a.releaseDate === null) return b.releaseDate === null ? 0 : 1;
+    if (b.releaseDate === null) return -1;
+    if (a.releaseDate !== b.releaseDate) {
+        const older = a.releaseDate < b.releaseDate ? -1 : 1;
+        return order === "oldest" ? older : -older;
+    }
+    return printedNumber(a) - printedNumber(b);
+}
+
+function printedNumber(card: SearchCard): number {
+    return Number.parseInt(card.number, 10) || 0;
+}
+
+function toCardSummary(card: SearchCard): CardSummary {
     return {
         id: card.id,
         name: card.name,
         setName: card.setName,
         number: card.number,
         rarity: card.rarity,
-        smallImageUrl: imageDataUrl,
+        smallImageUrl: cardImageUrl(card, "print"),
         marketPrice: card.marketPrice,
     };
 }
 
 interface Facets {
-    languages: string[];
+    languages: CardLanguage[];
     rarities: string[];
-    cardTypes: string[];
+    categories: string[];
 }
 
-/** Distinct filter options present in the current results, sorted. */
 function buildFacets(results: SearchResults): Facets {
-    const languages = new Set<string>();
+    const languages = new Set<CardLanguage>();
     const rarities = new Set<string>();
-    const cardTypes = new Set<string>();
+    const categories = new Set<string>();
     for (const card of results ?? []) {
-        if (card.language !== null) languages.add(card.language);
+        languages.add(card.language);
         if (card.rarity !== null) rarities.add(card.rarity);
-        if (card.cardType !== null) cardTypes.add(card.cardType);
+        if (card.category !== null) categories.add(card.category);
     }
     return {
         languages: [...languages].sort(),
         rarities: [...rarities].sort(),
-        cardTypes: [...cardTypes].sort(),
+        categories: [...categories].sort(),
     };
 }

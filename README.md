@@ -16,11 +16,13 @@ your browser, in shareable URLs, and in `.json` files you export.
   so gutter-crossing art makes visual sense. Add/delete pages anywhere, and
   switch any binder between 9-pocket and 12-pocket pages with the toolbar
   toggle (12-pocket cut guides print on A4 landscape).
-- **Card search**: search [PokeWallet](https://www.pokewallet.io) by card
-  name, set code, or card number, then narrow results by language, rarity,
-  and card type. Click a pocket then a result to place it, or just drag a
-  result onto a pocket. Hover a placed card for its market price; each page
-  header shows the page's total value.
+- **Card search**: search [TCGdex](https://tcgdex.dev) by card name, set
+  code, or card number, then narrow results by language, rarity, and card
+  type. English and Japanese printings come back together, bridged on the
+  national dex number, so searching "Pikachu" also surfaces ピカチュウ. Click a
+  pocket then a result to place it, or just drag a result onto a pocket.
+  Hover a placed card for its market price; each page header shows the
+  page's total value.
 - **Michi method art spans**: drag across empty pockets (spreadsheet-style)
   to select a rectangular region (a 2-wide gutter pair, a full 3×6 spread, a
   vertical 3-stack, anything contiguous), then pick an image to fill it. The
@@ -50,20 +52,8 @@ npm install
 npm run dev        # local dev server (Vite)
 ```
 
-### PokeWallet API key (required for card search)
-
-Card search is backed by the [PokeWallet API](https://www.pokewallet.io/api-docs).
-Get a key (free keys allow 100 requests/hour) and put it in a `.env.local`
-file (git-ignored, so your key never gets committed):
-
-```bash
-cp .env.example .env.local
-# then edit .env.local:
-VITE_POKEWALLET_API_KEY=your-key-here
-```
-
-Restart `npm run dev` after changing env files (values are baked in at build
-time).
+Card search is backed by the [TCGdex API](https://tcgdex.dev/rest), which
+needs no API key and no configuration.
 
 ## Adding art to the gallery
 
