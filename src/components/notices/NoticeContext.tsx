@@ -1,4 +1,4 @@
-import {createContext, type ReactNode, useCallback, useContext, useMemo, useRef, useState,} from "react";
+import {createContext, type ReactNode, use, useCallback, useMemo, useRef, useState,} from "react";
 
 export type NoticeKind = "info" | "success" | "error";
 
@@ -40,11 +40,11 @@ export function NoticeProvider({children}: { children: ReactNode }) {
         [notices, showNotice, dismissNotice]
     );
 
-    return <NoticeContext.Provider value={value}>{children}</NoticeContext.Provider>;
+    return <NoticeContext value={value}>{children}</NoticeContext>;
 }
 
 export function useNotices(): NoticeContextValue {
-    const value = useContext(NoticeContext);
+    const value = use(NoticeContext);
     if (value === null) {
         throw new Error("useNotices must be used inside a NoticeProvider");
     }

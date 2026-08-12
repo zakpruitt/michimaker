@@ -1,32 +1,27 @@
-import {createContext, type ReactNode, useCallback, useContext, useEffect, useState,} from "react";
+import {createContext, type ReactNode, use, useCallback, useEffect, useState,} from "react";
 import {ArtOnlyPrintSheets} from "./ArtOnlyPrintSheets";
 import {PrintDialog} from "./PrintDialog";
 import {PrintPageSetup} from "./PrintPageSetup";
 
 export interface PrintOptions {
-    /** "pages": the classic per-page cut guide. "art-only": packed art sheets. */
     mode: "pages" | "art-only";
-    /** Which binder pages to include. */
     pageIndexes: number[] | "all";
-    /** Print side-by-side art on the same page as one uncut strip. */
     connectStrips: boolean;
 }
 
 const OpenPrintDialogContext = createContext<(() => void) | null>(null);
 const ActivePrintContext = createContext<PrintOptions | null>(null);
 
-/** The toolbar uses this to open the print dialog. */
 export function usePrintDialog(): () => void {
-    const openDialog = useContext(OpenPrintDialogContext);
+    const openDialog = use(OpenPrintDialogContext);
     if (openDialog === null) {
         throw new Error("usePrintDialog must be used within PrintProvider");
     }
     return openDialog;
 }
 
-/** Options of the print job in progress, or null when not printing. */
 export function useActivePrintOptions(): PrintOptions | null {
-    return useContext(ActivePrintContext);
+    return use(ActivePrintContext);
 }
 
 export function PrintProvider({children}: { children: ReactNode }) {
@@ -47,9 +42,6 @@ export function PrintProvider({children}: { children: ReactNode }) {
             bodyClasses.add("print-art-only");
         }
 
-        // Two frames so the hidden pages / art sheets are painted before the
-        // print dialog snapshots the document. window.print() blocks until the
-        // browser dialog closes, after which the job state resets.
         let cancelled = false;
         const frame = requestAnimationFrame(() => {
             requestAnimationFrame(() => {
@@ -69,8 +61,8 @@ export function PrintProvider({children}: { children: ReactNode }) {
     }, [activeOptions]);
 
     return (
-        <OpenPrintDialogContext.Provider value={openDialog}>
-            <ActivePrintContext.Provider value={activeOptions}>
+        <OpenPrintDialogContext value={openDialog}>
+            <ActivePrintContext value={activeOptions}>
                 {children}
                 <PrintPageSetup/>
                 {isDialogOpen && (
@@ -85,7 +77,7 @@ export function PrintProvider({children}: { children: ReactNode }) {
                 {activeOptions !== null && activeOptions.mode === "art-only" && (
                     <ArtOnlyPrintSheets pageIndexes={activeOptions.pageIndexes}/>
                 )}
-            </ActivePrintContext.Provider>
-        </OpenPrintDialogContext.Provider>
+            </ActivePrintContext>
+        </OpenPrintDialogContext>
     );
 }

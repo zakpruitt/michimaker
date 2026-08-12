@@ -1,4 +1,4 @@
-import {createContext, type ReactNode, useContext, useEffect, useMemo, useReducer, useRef, useState,} from "react";
+import {createContext, type ReactNode, use, useEffect, useMemo, useReducer, useRef, useState,} from "react";
 import type {ArtPiece} from "../../../types/art";
 import type {Binder, GridRect, PocketColumns, PocketContent, PocketRef,} from "../../../types/binder";
 import type {CardSummary} from "../../../types/card";
@@ -26,25 +26,20 @@ import type {ArtMovePayload} from "../pocket/dragPayload";
 
 export interface BinderStateValue {
     binder: Binder;
-    /** Resolved content per pocket; pockets absent from the map are empty. */
     pocketContents: Map<string, PocketContent>;
 }
 
 export interface SelectionValue {
     selection: GridRect | null;
-    /** Pocket keys inside the current selection (for highlight rendering). */
     selectedPocketKeys: Set<string>;
-    /** True when the selection covers only empty pockets (art can go there). */
     selectionIsPlaceable: boolean;
 }
 
 export interface BinderActions {
-    // --- page operations ---
     addPageAfter(pageIndex: number): void;
 
     deletePage(pageIndex: number): void;
 
-    // --- placement operations ---
     placeCardFromSearch(card: CardSummary): void;
 
     placeCardAt(pocket: PocketRef, card: CardSummary): void;
@@ -59,14 +54,12 @@ export interface BinderActions {
 
     removeSelectionContent(): void;
 
-    // --- selection interaction (wired to pocket mouse events) ---
     handlePocketMouseDown(pocket: PocketRef): void;
 
     handlePocketMouseEnter(pocket: PocketRef): void;
 
     clearSelection(): void;
 
-    // --- whole-binder operations ---
     setBinderTitle(title: string): void;
 
     setPocketColumns(columns: PocketColumns): void;
@@ -88,7 +81,6 @@ interface InitialLoad {
     shareLinkError: string | null;
 }
 
-/** Share link (if present) wins over auto-save; otherwise a fresh binder. */
 function resolveInitialBinder(): InitialLoad {
     const fromUrl = readBinderFromCurrentUrl();
     if (fromUrl.status === "ok") {
@@ -102,7 +94,6 @@ function resolveInitialBinder(): InitialLoad {
     return {binder: createDefaultBinder(), source: "default", shareLinkError};
 }
 
-/** "3 cards (A, B, C)" with the list capped so notices stay readable. */
 function describeDropped(names: string[]): string {
     const shown = names.slice(0, 4).join(", ");
     const extra = names.length - 4;
@@ -127,8 +118,6 @@ export function BinderProvider({children}: { children: ReactNode }) {
     const [binder, dispatch] = useReducer(binderReducer, initialLoad.binder);
     const [selection, setSelection] = useState<GridRect | null>(null);
 
-    // Where the current drag-selection started. A ref, not state: it changes
-    // during mouse interaction but nothing renders from it.
     const dragAnchorRef = useRef<PocketRef | null>(null);
 
     const pocketContents = useMemo(() => buildPocketContentMap(binder), [binder]);
@@ -152,15 +141,9 @@ export function BinderProvider({children}: { children: ReactNode }) {
         );
     }, [selection, binder.pages.length, binder.pocketColumns, pocketContents]);
 
-    // Latest-state snapshot so the action callbacks below can stay stable
-    // (identical object for the app's lifetime) while always reading current
-    // values. Updated every render; actions only run from event handlers,
-    // which always fire after the render that produced their state.
     const snapshotRef = useRef({binder, pocketContents, selection, selectedPocketKeys, selectionIsPlaceable});
     snapshotRef.current = {binder, pocketContents, selection, selectedPocketKeys, selectionIsPlaceable};
 
-    // Report how the binder was loaded, then drop the share param so a
-    // refresh keeps the user's edits (auto-save) instead of the snapshot.
     const startupReportedRef = useRef(false);
     useEffect(() => {
         if (startupReportedRef.current) {
@@ -179,15 +162,10 @@ export function BinderProvider({children}: { children: ReactNode }) {
         }
     }, [initialLoad, showNotice]);
 
-    // Keep the print stylesheet's pocket-grid template in sync with the
-    // binder's 9- vs 12-pocket layout.
     useEffect(() => {
         applyPocketColumnsCssVariables(binder.pocketColumns);
     }, [binder.pocketColumns]);
 
-    // Auto-save, debounced so bursts of edits (and binders with large uploaded
-    // images) serialize once, not once per change; flushed when the tab hides
-    // or closes so the trailing edit is never lost.
     useEffect(() => {
         const timeoutId = window.setTimeout(
             () => saveBinderToLocalStorage(binder),
@@ -205,7 +183,6 @@ export function BinderProvider({children}: { children: ReactNode }) {
         return () => window.removeEventListener("pagehide", flushAutoSave);
     }, []);
 
-    // Drag selection ends on mouse-up anywhere; Escape clears the selection.
     useEffect(() => {
         function handleMouseUp() {
             dragAnchorRef.current = null;
@@ -226,7 +203,6 @@ export function BinderProvider({children}: { children: ReactNode }) {
         };
     }, []);
 
-    // One stable actions object; callbacks read live state through snapshotRef.
     const actions = useMemo<BinderActions>(() => {
         function warnAboutDroppedArt(droppedTitles: string[]): void {
             if (droppedTitles.length > 0) {
@@ -369,8 +345,6 @@ export function BinderProvider({children}: { children: ReactNode }) {
             },
 
             dropArtOnPocket(pocket: PocketRef, art: ArtPiece): void {
-                // Dropping inside a selected empty region fills the whole region;
-                // dropping anywhere else fills just that one pocket.
                 const current = snapshotRef.current;
                 if (current.selectionIsPlaceable && current.selectedPocketKeys.has(pocketKey(pocket))) {
                     tryPlaceArt(current.selection as GridRect, art);
@@ -404,13 +378,11 @@ export function BinderProvider({children}: { children: ReactNode }) {
             handlePocketMouseDown(pocket: PocketRef): void {
                 const content = snapshotRef.current.pocketContents.get(pocketKey(pocket));
                 if (content !== undefined && content.kind === "art") {
-                    // Clicking any cell of an art span selects the whole span.
                     setSelection(content.placement.rect);
                     return;
                 }
                 setSelection(singlePocketRect(pocket));
                 if (content === undefined) {
-                    // Only drags starting on an empty pocket can grow into a region.
                     dragAnchorRef.current = pocket;
                 }
             },
@@ -420,8 +392,6 @@ export function BinderProvider({children}: { children: ReactNode }) {
                 if (anchor === null) {
                     return;
                 }
-                // Returns null when the mouse wanders onto another spread; the
-                // selection keeps its last valid rectangle in that case.
                 const rect = rectFromPockets(anchor, pocket, snapshotRef.current.binder.pocketColumns);
                 if (rect !== null) {
                     setSelection(rect);
@@ -475,18 +445,18 @@ export function BinderProvider({children}: { children: ReactNode }) {
     );
 
     return (
-        <BinderStateContext.Provider value={stateValue}>
-            <SelectionContext.Provider value={selectionValue}>
-                <BinderActionsContext.Provider value={actions}>
+        <BinderStateContext value={stateValue}>
+            <SelectionContext value={selectionValue}>
+                <BinderActionsContext value={actions}>
                     {children}
-                </BinderActionsContext.Provider>
-            </SelectionContext.Provider>
-        </BinderStateContext.Provider>
+                </BinderActionsContext>
+            </SelectionContext>
+        </BinderStateContext>
     );
 }
 
 function useRequiredContext<T>(context: React.Context<T | null>, hookName: string): T {
-    const value = useContext(context);
+    const value = use(context);
     if (value === null) {
         throw new Error(`${hookName} must be used inside a BinderProvider`);
     }
