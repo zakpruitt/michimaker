@@ -1,14 +1,19 @@
+import {useState} from "react";
+import type {ArtPlacement} from "../../../types/binder";
 import {useBinderActions, useBinderState, useSelection} from "../state/BinderContext";
 import {findPlacementMatchingRect, listCoveredPockets, pocketKey, rectArea} from "../state/gridMath";
+import {ArtCropDialog} from "../crop/ArtCropDialog";
 import styles from "./SelectionBanner.module.css";
 
 export function SelectionBanner() {
     const {selection, selectionIsPlaceable} = useSelection();
     const {binder, pocketContents} = useBinderState();
     const {removeSelectionContent, clearSelection} = useBinderActions();
+    const [isCropOpen, setIsCropOpen] = useState(false);
 
     let description: string;
     let canRemove = false;
+    let artToFrame: ArtPlacement | null = null;
 
     if (selection === null) {
         description = "Click a pocket, or drag across pockets for art.";
@@ -27,6 +32,7 @@ export function SelectionBanner() {
             const rect = selectedArt.rect;
             description = `Art: ${selectedArt.art.title} (${rect.rowCount}×${rect.columnCount})`;
             canRemove = true;
+            artToFrame = selectedArt;
         } else if (isSinglePocket) {
             description = "Empty pocket selected. Pick a card or art piece.";
         } else if (selectionIsPlaceable) {
@@ -47,6 +53,14 @@ export function SelectionBanner() {
             <div className={styles.actions}>
                 <button
                     type="button"
+                    className={styles.frameButton}
+                    onClick={() => setIsCropOpen(true)}
+                    disabled={artToFrame === null}
+                >
+                    Adjust framing
+                </button>
+                <button
+                    type="button"
                     className={styles.removeButton}
                     onClick={removeSelectionContent}
                     disabled={!canRemove}
@@ -62,6 +76,9 @@ export function SelectionBanner() {
                     Clear selection
                 </button>
             </div>
+            {isCropOpen && artToFrame !== null && (
+                <ArtCropDialog placement={artToFrame} onClose={() => setIsCropOpen(false)}/>
+            )}
         </div>
     );
 }

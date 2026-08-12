@@ -34,6 +34,7 @@
     flex-shrink: 0;
 }
 
+.frameButton,
 .removeButton,
 .clearButton {
     padding: 6px 12px;
@@ -44,11 +45,23 @@
     transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 
+.frameButton:disabled,
 .removeButton:disabled,
 .clearButton:disabled {
     opacity: 0.4;
     cursor: default;
     pointer-events: none;
+}
+
+.frameButton {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+}
+
+.frameButton:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
 }
 
 .removeButton {

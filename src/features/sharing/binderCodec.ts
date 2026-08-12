@@ -4,6 +4,7 @@ import {
     type Binder,
     type BinderPageData,
     DEFAULT_POCKET_COLUMNS,
+    normalizeArtCrop,
     pocketsPerPage,
 } from "../../types/binder";
 import {validateRectShape} from "../binder/state/gridMath";
@@ -83,9 +84,9 @@ function validateBinder(value: unknown): Binder {
     binder.pages.forEach((page) => validatePage(page, pocketsPerPage(pocketColumns)));
     binder.artPlacements.forEach(validatePlacement);
     const pages = binder.pages;
-    const artPlacements = binder.artPlacements.filter(
-        (placement) => validateRectShape(placement.rect, pages.length, pocketColumns) === null
-    );
+    const artPlacements = binder.artPlacements
+        .filter((placement) => validateRectShape(placement.rect, pages.length, pocketColumns) === null)
+        .map((placement) => ({...placement, crop: normalizeArtCrop(placement.crop)}));
     return {title: binder.title, pocketColumns, pages, artPlacements};
 }
 

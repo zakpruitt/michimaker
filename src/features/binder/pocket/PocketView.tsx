@@ -154,13 +154,7 @@ function ArtCell({
 }) {
     const {placement, rowOffset, columnOffset, holes} = content;
     const aspectRatio = useImageAspectRatio(placement.art.imageUrl);
-    const backgroundStyle = computeArtCellStyle(
-        placement.rect,
-        rowOffset,
-        columnOffset,
-        placement.art.imageUrl,
-        aspectRatio
-    );
+    const backgroundStyle = computeArtCellStyle(placement, rowOffset, columnOffset, aspectRatio);
 
     const isAnchorCell =
         firstVisibleArtOffset(placement.rect, holes) === artOffsetKey(rowOffset, columnOffset);

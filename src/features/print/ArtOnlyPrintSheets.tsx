@@ -124,10 +124,9 @@ function PackedPiece({positioned}: { positioned: PositionedPiece }) {
                             data-print="art-cell"
                             data-print-cut={cutEdges.join(" ")}
                             style={computeArtCellStyle(
-                                rect,
+                                placement,
                                 rowOffset,
                                 columnOffset,
-                                placement.art.imageUrl,
                                 aspectRatio
                             )}
                         />

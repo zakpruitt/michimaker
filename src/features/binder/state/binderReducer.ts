@@ -1,4 +1,5 @@
 import {
+    type ArtCrop,
     type ArtPlacement,
     type Binder,
     type BinderPageData,
@@ -23,6 +24,7 @@ export type BinderAction =
     | { type: "CLEAR_POCKET"; pocket: PocketRef }
     | { type: "PLACE_ART"; placement: ArtPlacement }
     | { type: "MOVE_ART"; placementId: string; rect: GridRect }
+    | { type: "SET_ART_CROP"; placementId: string; crop: ArtCrop }
     | { type: "REMOVE_ART_PLACEMENT"; placementId: string };
 
 export function createEmptyPage(columns: PocketColumns): BinderPageData {
@@ -229,6 +231,15 @@ export function binderReducer(binder: Binder, action: BinderAction): Binder {
                 ...binder,
                 artPlacements: binder.artPlacements.map((p) =>
                     p.id === action.placementId ? {...p, rect: action.rect} : p
+                ),
+            };
+        }
+
+        case "SET_ART_CROP": {
+            return {
+                ...binder,
+                artPlacements: binder.artPlacements.map((p) =>
+                    p.id === action.placementId ? {...p, crop: action.crop} : p
                 ),
             };
         }

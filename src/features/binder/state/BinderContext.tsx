@@ -1,6 +1,14 @@
 import {createContext, type ReactNode, use, useEffect, useMemo, useReducer, useRef, useState,} from "react";
 import type {ArtPiece} from "../../../types/art";
-import type {Binder, GridRect, PocketColumns, PocketContent, PocketRef,} from "../../../types/binder";
+import {
+    type ArtCrop,
+    type Binder,
+    DEFAULT_ART_CROP,
+    type GridRect,
+    type PocketColumns,
+    type PocketContent,
+    type PocketRef,
+} from "../../../types/binder";
 import type {CardSummary} from "../../../types/card";
 import {useNotices} from "../../../components/notices/NoticeContext";
 import {urlToDataUrl} from "../../../blobToDataUrl";
@@ -54,6 +62,8 @@ export interface BinderActions {
     dropArtOnPocket(pocket: PocketRef, art: ArtPiece): void;
 
     moveArt(move: ArtMovePayload, to: PocketRef): void;
+
+    setArtCrop(placementId: string, crop: ArtCrop): void;
 
     removeSelectionContent(): void;
 
@@ -256,7 +266,7 @@ export function BinderProvider({children}: { children: ReactNode }) {
             }
             dispatch({
                 type: "PLACE_ART",
-                placement: {id: crypto.randomUUID(), art, rect},
+                placement: {id: crypto.randomUUID(), art, rect, crop: DEFAULT_ART_CROP},
             });
             setSelection(null);
         }
@@ -325,6 +335,10 @@ export function BinderProvider({children}: { children: ReactNode }) {
                 }
                 dispatch({type: "MOVE_ART", placementId: placement.id, rect});
                 setSelection(rect);
+            },
+
+            setArtCrop(placementId: string, crop: ArtCrop): void {
+                dispatch({type: "SET_ART_CROP", placementId, crop});
             },
 
             placeCardFromSearch(card: CardSummary): void {

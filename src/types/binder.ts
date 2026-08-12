@@ -28,10 +28,41 @@ export interface GridRect {
     columnCount: number;
 }
 
+export interface ArtCrop {
+    zoom: number;
+    panX: number;
+    panY: number;
+}
+
+export const DEFAULT_ART_CROP: ArtCrop = {zoom: 1, panX: 0, panY: 0};
+
+export const MIN_ART_ZOOM = 1;
+export const MAX_ART_ZOOM = 4;
+
+function clampNumber(value: unknown, min: number, max: number, fallback: number): number {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+        return fallback;
+    }
+    return Math.min(max, Math.max(min, value));
+}
+
+export function normalizeArtCrop(value: unknown): ArtCrop {
+    if (typeof value !== "object" || value === null) {
+        return DEFAULT_ART_CROP;
+    }
+    const crop = value as Partial<ArtCrop>;
+    return {
+        zoom: clampNumber(crop.zoom, MIN_ART_ZOOM, MAX_ART_ZOOM, DEFAULT_ART_CROP.zoom),
+        panX: clampNumber(crop.panX, -1, 1, DEFAULT_ART_CROP.panX),
+        panY: clampNumber(crop.panY, -1, 1, DEFAULT_ART_CROP.panY),
+    };
+}
+
 export interface ArtPlacement {
     id: string;
     art: ArtPiece;
     rect: GridRect;
+    crop: ArtCrop;
 }
 
 export interface BinderPageData {

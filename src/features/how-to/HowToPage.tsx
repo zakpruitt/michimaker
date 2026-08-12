@@ -63,6 +63,14 @@ export function HowToPage() {
                     {" "}deletes it.
                 </p>
                 <p>
+                    A placed piece starts centered and cropped to fill its span. Hit
+                    {" "}<strong>Adjust framing</strong> to open a preview with the pocket
+                    cuts drawn on top, then drag the picture to reposition it and zoom in
+                    or out until the part you want lands where you want it. The framing
+                    is saved with the placement, so the binder preview, share links, and
+                    printed sheets all match.
+                </p>
+                <p>
                     Cards and art share the same pockets. Drop a card into any pocket
                     inside a span and it sits on top: the picture keeps its full
                     rectangle, so it stays centered and lined up, and the card simply
