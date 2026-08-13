@@ -1,4 +1,14 @@
-import {createContext, type ReactNode, use, useEffect, useMemo, useReducer, useRef, useState,} from "react";
+import {
+    createContext,
+    type ReactNode,
+    use,
+    useCallback,
+    useEffect,
+    useMemo,
+    useReducer,
+    useRef,
+    useState,
+} from "react";
 import type {ArtPiece} from "../../../types/art";
 import {
     type ArtCrop,
@@ -13,7 +23,7 @@ import type {CardSummary} from "../../../types/card";
 import {useNotices} from "../../../components/notices/NoticeContext";
 import {urlToDataUrl} from "../../../blobToDataUrl";
 import {applyPocketColumnsCssVariables} from "../../../domainCssVariables";
-import {loadBinderFromLocalStorage, saveBinderToLocalStorage} from "../../sharing/storage";
+import {loadBinderFromLocalStorage, type SaveResult, saveBinderToLocalStorage} from "../../sharing/storage";
 import {readBinderFromCurrentUrl, removeShareParamFromUrl} from "../../sharing/shareLink";
 import {
     binderReducer,
@@ -86,7 +96,8 @@ const BinderStateContext = createContext<BinderStateValue | null>(null);
 const SelectionContext = createContext<SelectionValue | null>(null);
 const BinderActionsContext = createContext<BinderActions | null>(null);
 
-const AUTO_SAVE_DELAY_MS = 400;
+const AUTO_SAVE_DELAY_MS = 150;
+const AUTO_SAVE_MAX_WAIT_MS = 1500;
 
 interface InitialLoad {
     binder: Binder;
@@ -112,6 +123,10 @@ function describeDropped(names: string[]): string {
     const extra = names.length - 4;
     const list = extra > 0 ? `${shown}, and ${extra} more` : shown;
     return `${names.length} card${names.length === 1 ? "" : "s"} (${list})`;
+}
+
+function formatMegabytes(bytes: number): string {
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function singlePocketRect(pocket: PocketRef): GridRect {
@@ -201,22 +216,57 @@ export function BinderProvider({children}: { children: ReactNode }) {
         applyPocketColumnsCssVariables(binder.pocketColumns);
     }, [binder.pocketColumns]);
 
-    useEffect(() => {
-        const timeoutId = window.setTimeout(
-            () => saveBinderToLocalStorage(binder),
-            AUTO_SAVE_DELAY_MS
+    const saveFailureReportedRef = useRef(false);
+    const reportSave = useCallback((result: SaveResult) => {
+        if (result.status === "saved" || result.status === "unchanged") {
+            saveFailureReportedRef.current = false;
+            return;
+        }
+        if (saveFailureReportedRef.current) {
+            return;
+        }
+        saveFailureReportedRef.current = true;
+        showNotice(
+            result.status === "quota-exceeded"
+                ? `This binder is now ${formatMegabytes(result.bytes)} and no longer fits in browser storage, so auto-save has stopped. Save a binder file from the toolbar to keep your work, then remove some art or cards.`
+                : "Auto-save to this browser failed. Save a binder file from the toolbar to keep your work.",
+            "error"
         );
+    }, [showNotice]);
+
+    const savePendingSinceRef = useRef<number | null>(null);
+    useEffect(() => {
+        if (savePendingSinceRef.current === null) {
+            savePendingSinceRef.current = Date.now();
+        }
+        const waited = Date.now() - savePendingSinceRef.current;
+        const delay = Math.max(0, Math.min(AUTO_SAVE_DELAY_MS, AUTO_SAVE_MAX_WAIT_MS - waited));
+        const timeoutId = window.setTimeout(() => {
+            savePendingSinceRef.current = null;
+            reportSave(saveBinderToLocalStorage(binder));
+        }, delay);
         return () => window.clearTimeout(timeoutId);
-    }, [binder]);
+    }, [binder, reportSave]);
 
     useEffect(() => {
         function flushAutoSave() {
-            saveBinderToLocalStorage(snapshotRef.current.binder);
+            savePendingSinceRef.current = null;
+            reportSave(saveBinderToLocalStorage(snapshotRef.current.binder));
+        }
+
+        function flushWhenHidden() {
+            if (document.visibilityState === "hidden") {
+                flushAutoSave();
+            }
         }
 
         window.addEventListener("pagehide", flushAutoSave);
-        return () => window.removeEventListener("pagehide", flushAutoSave);
-    }, []);
+        document.addEventListener("visibilitychange", flushWhenHidden);
+        return () => {
+            window.removeEventListener("pagehide", flushAutoSave);
+            document.removeEventListener("visibilitychange", flushWhenHidden);
+        };
+    }, [reportSave]);
 
     useEffect(() => {
         function handleMouseUp() {

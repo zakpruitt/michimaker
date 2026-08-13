@@ -1,4 +1,5 @@
 import {type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState} from "react";
+import {resolveArtImageUrl} from "../../../artImageUrl";
 import {
     type ArtCrop,
     type ArtPlacement,
@@ -43,7 +44,7 @@ export function ArtCropDialog({placement, onClose}: ArtCropDialogProps) {
     const dragRef = useRef<DragState | null>(null);
     const previewRef = useRef<HTMLDivElement | null>(null);
 
-    const aspectRatio = useImageAspectRatio(placement.art.imageUrl);
+    const aspectRatio = useImageAspectRatio(resolveArtImageUrl(placement.art));
     const rect = placement.rect;
 
     const holes = useMemo(

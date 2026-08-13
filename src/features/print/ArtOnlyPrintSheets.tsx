@@ -1,3 +1,4 @@
+import {resolveArtImageUrl} from "../../artImageUrl";
 import {POCKET_HEIGHT_MM, POCKET_WIDTH_MM} from "../../types/binder";
 import {useBinderState} from "../binder/state/BinderContext";
 import {computeArtCellStyle} from "../binder/pocket/artSpanStyle";
@@ -59,7 +60,7 @@ function PackedPiece({positioned}: { positioned: PositionedPiece }) {
         rowOffsetEnd,
     } = piece;
     const rect = placement.rect;
-    const aspectRatio = useImageAspectRatio(placement.art.imageUrl);
+    const aspectRatio = useImageAspectRatio(resolveArtImageUrl(placement.art));
 
     const isHole = (row: number, column: number) =>
         piece.holes.has(artOffsetKey(row, column));

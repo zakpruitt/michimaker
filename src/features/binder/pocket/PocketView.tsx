@@ -1,4 +1,5 @@
-import type {DragEvent, MouseEvent} from "react";
+import {type DragEvent, type MouseEvent, useMemo} from "react";
+import {resolveArtImageUrl} from "../../../artImageUrl";
 import type {PocketColumns, PocketContent, PocketRef} from "../../../types/binder";
 import {formatUsd} from "../../../types/card";
 import {useBinderActions, useSelection} from "../state/BinderContext";
@@ -153,8 +154,11 @@ function ArtCell({
     columns: PocketColumns;
 }) {
     const {placement, rowOffset, columnOffset, holes} = content;
-    const aspectRatio = useImageAspectRatio(placement.art.imageUrl);
-    const backgroundStyle = computeArtCellStyle(placement, rowOffset, columnOffset, aspectRatio);
+    const aspectRatio = useImageAspectRatio(resolveArtImageUrl(placement.art));
+    const backgroundStyle = useMemo(
+        () => computeArtCellStyle(placement, rowOffset, columnOffset, aspectRatio),
+        [placement, rowOffset, columnOffset, aspectRatio]
+    );
 
     const isAnchorCell =
         firstVisibleArtOffset(placement.rect, holes) === artOffsetKey(rowOffset, columnOffset);

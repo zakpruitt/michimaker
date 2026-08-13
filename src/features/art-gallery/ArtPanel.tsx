@@ -1,5 +1,5 @@
 import {type ChangeEvent, type DragEvent, useMemo, useState} from "react";
-import {blobToDataUrl} from "../../blobToDataUrl";
+import {downscaleImageToDataUrl} from "../../downscaleImage";
 import type {ArtPiece} from "../../types/art";
 import {Pager} from "../../components/Pager";
 import {useBinderActions, useSelection} from "../binder/state/BinderContext";
@@ -61,7 +61,7 @@ export function ArtPanel() {
 
         let imageUrl: string;
         try {
-            imageUrl = await blobToDataUrl(file);
+            imageUrl = await downscaleImageToDataUrl(file);
         } catch {
             showNotice("The image could not be read.", "error");
             return;

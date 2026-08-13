@@ -227,17 +227,35 @@ export function buildPocketContentMap(binder: Binder): Map<string, PocketContent
     return contents;
 }
 
+export function rectCoversPocket(
+    rect: GridRect,
+    pocket: PocketRef,
+    columns: PocketColumns
+): boolean {
+    if (pocket.row < rect.row || pocket.row >= rect.row + rect.rowCount) {
+        return false;
+    }
+    let spreadColumn: number;
+    if (pocket.pageIndex === rect.pageIndex) {
+        spreadColumn = pocket.column;
+    } else if (
+        pocket.pageIndex === rect.pageIndex + 1 &&
+        rectCrossesGutter(rect, columns)
+    ) {
+        spreadColumn = pocket.column + columns;
+    } else {
+        return false;
+    }
+    return spreadColumn >= rect.column && spreadColumn < rect.column + rect.columnCount;
+}
+
 export function findPlacementCovering(
     placements: ArtPlacement[],
     pocket: PocketRef,
     columns: PocketColumns
 ): ArtPlacement | null {
-    const targetKey = pocketKey(pocket);
     for (const placement of placements) {
-        const isCovered = listCoveredPockets(placement.rect, columns).some(
-            (covered) => pocketKey(covered) === targetKey
-        );
-        if (isCovered) {
+        if (rectCoversPocket(placement.rect, pocket, columns)) {
             return placement;
         }
     }

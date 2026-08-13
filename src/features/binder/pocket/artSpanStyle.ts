@@ -1,4 +1,5 @@
 import type {CSSProperties} from "react";
+import {resolveArtImageUrl} from "../../../artImageUrl";
 import {
     type ArtCrop,
     type ArtPlacement,
@@ -64,7 +65,7 @@ export function computeArtCellStyle(
     const spanWidth = placement.rect.columnCount * POCKET_WIDTH_MM;
     const spanHeight = placement.rect.rowCount * POCKET_HEIGHT_MM;
     return backgroundStyleFor(
-        placement.art.imageUrl,
+        resolveArtImageUrl(placement.art),
         spanWidth,
         spanHeight,
         placement.crop,
@@ -86,7 +87,7 @@ export function computeArtSpanStyle(
     const spanWidth = placement.rect.columnCount * POCKET_WIDTH_MM;
     const spanHeight = placement.rect.rowCount * POCKET_HEIGHT_MM;
     return backgroundStyleFor(
-        placement.art.imageUrl,
+        resolveArtImageUrl(placement.art),
         spanWidth,
         spanHeight,
         crop,
