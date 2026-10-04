@@ -105,3 +105,14 @@ Vite + React 19 + TypeScript, CSS Modules, `pako` for share-link compression.
 No UI framework, no state library, no backend. See
 [ARCHITECTURE.md](./ARCHITECTURE.md) for a tour of the codebase (written for
 Java/Spring folks).
+
+<!-- portfolio
+section: featured
+name: MichiMaker
+year: 2026
+tags: React, TypeScript, TCGdex API, GitHub Pages
+summary: Plans Pokémon card binders before you print or cut anything, including "Michi method" fan-art
+  spreads that span several pockets. It has live TCGdex search that matches English and Japanese printings,
+  drag-and-drop placement, print-accurate cut guides, and share links that keep the whole binder in a
+  compressed URL. No server needed.
+-->
