@@ -69,3 +69,19 @@
 .dismiss:hover {
     opacity: 1;
 }
+
+.action {
+    flex-shrink: 0;
+    padding: 3px 9px;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.action:hover {
+    background: rgba(255, 255, 255, 0.6);
+}
