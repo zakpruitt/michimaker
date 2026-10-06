@@ -1,15 +1,17 @@
-import {type ChangeEvent, type DragEvent, useMemo, useState} from "react";
+import {type ChangeEvent, useMemo, useState} from "react";
 import {downscaleImageToDataUrl} from "../../downscaleImage";
 import type {ArtPiece} from "../../types/art";
 import {Pager} from "../../components/Pager";
+import {activateOnEnterOrSpace} from "../../keyboard";
 import {useBinderActions, useSelection} from "../binder/state/BinderContext";
 import {setArtDragPayload} from "../binder/pocket/dragPayload";
 import {useNotices} from "../../components/notices/NoticeContext";
 import {GALLERY_ART, listCategories} from "./galleryData";
+import {UPLOADS_CATEGORY} from "./uploadStore";
+import {useUploadedArt} from "./useUploadedArt";
 import styles from "./ArtPanel.module.css";
 
 const ALL_CATEGORIES = "All";
-const UPLOADS_CATEGORY = "Uploads";
 
 const CATEGORIES = [ALL_CATEGORIES, UPLOADS_CATEGORY, ...listCategories(GALLERY_ART)];
 
@@ -20,7 +22,8 @@ export function ArtPanel() {
     const {selection, selectionIsPlaceable} = useSelection();
     const {showNotice} = useNotices();
 
-    const [uploads, setUploads] = useState<ArtPiece[]>([]);
+    const {uploads, addUploads, removeUpload} = useUploadedArt();
+    const uploadIds = useMemo(() => new Set(uploads.map((piece) => piece.id)), [uploads]);
     const [activeCategory, setActiveCategory] = useState(ALL_CATEGORIES);
     const [searchQuery, setSearchQuery] = useState("");
     const [artPage, setArtPage] = useState(0);
@@ -49,39 +52,47 @@ export function ArtPanel() {
     );
 
     async function handleUploadChange(event: ChangeEvent<HTMLInputElement>) {
-        const file = event.target.files?.[0];
+        const files = [...(event.target.files ?? [])];
         event.target.value = "";
-        if (file === undefined) {
-            return;
-        }
-        if (!file.type.startsWith("image/")) {
-            showNotice("Only image files can be uploaded.", "error");
-            return;
+        const images = files.filter((file) => file.type.startsWith("image/"));
+        if (images.length < files.length) {
+            showNotice("Only image files can be uploaded; other files were skipped.", "error");
         }
 
-        let imageUrl: string;
-        try {
-            imageUrl = await downscaleImageToDataUrl(file);
-        } catch {
-            showNotice("The image could not be read.", "error");
+        const added: ArtPiece[] = [];
+        for (const file of images) {
+            try {
+                added.push({
+                    id: crypto.randomUUID(),
+                    title: file.name,
+                    category: UPLOADS_CATEGORY,
+                    imageUrl: await downscaleImageToDataUrl(file),
+                    sourceUrl: null,
+                });
+            } catch {
+                showNotice(`"${file.name}" could not be read.`, "error");
+            }
+        }
+        if (added.length === 0) {
             return;
         }
-        const artPiece: ArtPiece = {
-            id: crypto.randomUUID(),
-            title: file.name,
-            category: UPLOADS_CATEGORY,
-            imageUrl,
-            sourceUrl: null,
-        };
-        setUploads((current) => [artPiece, ...current]);
+        addUploads(added);
+        setArtPage(0);
         showNotice(
-            `Added "${file.name}". Click it (or drag it onto the binder) to place it.`,
+            added.length === 1
+                ? `Added "${added[0].title}". Click it (or drag it onto the binder) to place it.`
+                : `Added ${added.length} images. Click one (or drag it onto the binder) to place it.`,
             "success"
         );
     }
 
-    function handleThumbnailDragStart(event: DragEvent, artPiece: ArtPiece) {
-        setArtDragPayload(event, artPiece);
+    function handleRemoveUpload(artPiece: ArtPiece) {
+        removeUpload(artPiece.id);
+        showNotice(
+            `Removed "${artPiece.title}" from your uploads. Anything already placed in the binder stays.`,
+            "info",
+            {label: "Undo", onAction: () => addUploads([artPiece])}
+        );
     }
 
     return (
@@ -127,15 +138,18 @@ export function ArtPanel() {
             {activeCategory === UPLOADS_CATEGORY && (
                 <div className={styles.uploadSection}>
                     <label className={styles.uploadButton}>
-                        Upload an image…
+                        Upload images…
                         <input
                             type="file"
                             accept="image/*"
+                            multiple
                             onChange={handleUploadChange}
                             className={styles.uploadInput}
                         />
                     </label>
-                    <p className={styles.uploadHint}>Images are not uploaded to a server.</p>
+                    <p className={styles.uploadHint}>
+                        Images stay in this browser (never sent to a server) and are kept between visits.
+                    </p>
                 </div>
             )}
 
@@ -151,13 +165,27 @@ export function ArtPanel() {
                 <div className={styles.list}>
                     {pagedArt.map((artPiece) => (
                         <figure key={artPiece.id} className={styles.thumbnailCard}>
+                            {uploadIds.has(artPiece.id) && (
+                                <button
+                                    type="button"
+                                    className={styles.removeUpload}
+                                    onClick={() => handleRemoveUpload(artPiece)}
+                                    title="Remove from your uploads"
+                                    aria-label={`Remove ${artPiece.title} from your uploads`}
+                                >
+                                    ×
+                                </button>
+                            )}
                             <img
                                 src={artPiece.imageUrl}
                                 alt={artPiece.title}
                                 className={styles.thumbnail}
+                                role="button"
+                                tabIndex={0}
                                 draggable
-                                onDragStart={(event) => handleThumbnailDragStart(event, artPiece)}
+                                onDragStart={(event) => setArtDragPayload(event, artPiece)}
                                 onClick={() => placeArtInSelection(artPiece)}
+                                onKeyDown={activateOnEnterOrSpace(() => placeArtInSelection(artPiece))}
                                 loading="lazy"
                                 title={`${artPiece.title}: click to place in the selected region`}
                             />
