@@ -1,5 +1,5 @@
 import {GITHUB_REPO_URL} from "../../appLinks";
-import {POCKET_HEIGHT_MM, POCKET_WIDTH_MM} from "../../types/binder";
+import {DEFAULT_POCKET_GAP, POCKET_HEIGHT_MM, POCKET_WIDTH_MM} from "../../types/binder";
 import styles from "./HowToPage.module.css";
 
 export function HowToPage() {
@@ -14,7 +14,7 @@ export function HowToPage() {
                     MichiMaker plans a real 9- or 12-pocket binder: cards from the
                     Pokémon TCG library, plus "Michi method" fan-art spreads where one
                     image is printed, cut into pocket-sized pieces, and slid across
-                    several pockets. Five steps from empty binder to printed art.
+                    several pockets. Five steps from empty binder to printed art and proxies.
                 </p>
             </header>
 
@@ -126,32 +126,44 @@ export function HowToPage() {
 
             <section className={styles.step}>
                 <h2 className={styles.stepTitle}>
-                    <span className={styles.stepNumber}>5</span> Print the cut guide
+                    <span className={styles.stepNumber}>5</span> Print, cut, and slot it in
                 </h2>
                 <p>
-                    <strong>Print</strong> opens the print options: pick which
-                    pages to print, or switch to <strong>art only</strong> to pack just
-                    the art pieces onto as few sheets as possible and save ink. By
-                    default, side-by-side art on the same page prints as one connected
-                    strip; rows and gutter crossings always get cut lines.
+                    <strong>Print &amp; export</strong> (or Ctrl+P) makes three kinds of sheets
+                    on US Letter or A4, with a live preview:
+                </p>
+                <ul>
+                    <li>
+                        <strong>Michi art cut-outs</strong>: just the art, packed onto as few
+                        sheets as possible. Pockets in a real binder have a welded seam
+                        between them (about {DEFAULT_POCKET_GAP.xMm} mm), so the art is laid
+                        out across the seams and each piece is cropped from where its
+                        pocket sits. The picture stays continuous in the binder. Set the gap
+                        to match your pages, or 0 to slice edge to edge.
+                    </li>
+                    <li>
+                        <strong>Proxy cards</strong>: card-sized placeholders, 9 to a sheet,
+                        for the cards you still need. Select a card and press{" "}
+                        <strong>O</strong> (or "Mark as owned") once you have the real one,
+                        and it gets a green ✓ and is skipped.
+                    </li>
+                    <li>
+                        <strong>Whole binder pages</strong>: each page as a full layout guide.
+                    </li>
+                </ul>
+                <p>
+                    <strong>Print / Save PDF</strong> prints at exact size. Every pocket is{" "}
+                    {POCKET_WIDTH_MM} mm × {POCKET_HEIGHT_MM} mm, so print at{" "}
+                    <strong>100% scale</strong> (turn off "fit to page"). Matte photo paper
+                    or ~300 gsm cardstock feels closest to a real card. Cut on the dashed
+                    lines; a paper trimmer and a corner rounder give the cleanest result.
                 </p>
                 <p>
-                    Every pocket prints at exactly {POCKET_WIDTH_MM} mm ×{" "}
-                    {POCKET_HEIGHT_MM} mm, so print at <strong>100% scale</strong> (turn
-                    off "fit to page"), cut along the dashed lines, and the pieces slide
-                    straight into real pockets.
+                    <strong>Download images</strong> gives a .zip of 300 DPI PNGs: the
+                    printable sheets, every piece on its own (order them as 2.5" × 3.5"
+                    wallet prints), and the full art with your framing applied, sized in
+                    millimetres for a Canva custom-size design.
                 </p>
-                <figure className={styles.figure} aria-hidden="true">
-                    <div className={styles.mockStrip}>
-                        <div className={styles.mockStripCell}/>
-                        <div className={styles.mockStripCell}/>
-                        <div className={styles.mockStripCell}/>
-                    </div>
-                    <figcaption className={styles.caption}>
-                        A connected 1×3 strip: one outer cut line, nothing between the
-                        pockets.
-                    </figcaption>
-                </figure>
             </section>
 
             <footer className={styles.footer}>

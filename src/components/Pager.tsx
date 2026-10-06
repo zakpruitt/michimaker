@@ -22,8 +22,8 @@ export function Pager({page, pageCount, onPageChange}: PagerProps) {
                 ◀
             </button>
             <span className={styles.label}>
-        {page + 1} / {pageCount}
-      </span>
+                {page + 1} / {pageCount}
+            </span>
             <button
                 type="button"
                 className={styles.arrow}

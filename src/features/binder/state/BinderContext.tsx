@@ -2,8 +2,8 @@ import {
     createContext,
     type ReactNode,
     use,
-    useCallback,
     useEffect,
+    useLayoutEffect,
     useMemo,
     useReducer,
     useRef,
@@ -17,21 +17,16 @@ import {
     type GridRect,
     type PocketColumns,
     type PocketContent,
+    type PocketGap,
     type PocketRef,
 } from "../../../types/binder";
 import type {CardSummary} from "../../../types/card";
 import {useNotices} from "../../../components/notices/NoticeContext";
-import {urlToDataUrl} from "../../../blobToDataUrl";
-import {applyPocketColumnsCssVariables} from "../../../domainCssVariables";
-import {loadBinderFromLocalStorage, type SaveResult, saveBinderToLocalStorage} from "../../sharing/storage";
-import {readBinderFromCurrentUrl, removeShareParamFromUrl} from "../../sharing/shareLink";
-import {
-    binderReducer,
-    createDefaultBinder,
-    planPageDelete,
-    planPageInsert,
-    planPocketColumnsChange,
-} from "./binderReducer";
+import {removeShareParamFromUrl} from "../../sharing/shareLink";
+import {findCardImageUrls} from "../../card-search/tcgdexApi";
+import type {ArtMovePayload} from "../pocket/dragPayload";
+import {binderHistoryReducer, createBinderHistory} from "./binderHistory";
+import {createDefaultBinder, planPageDelete, planPageInsert, planPocketColumnsChange} from "./binderReducer";
 import {
     buildPocketContentMap,
     findPlacementCovering,
@@ -41,13 +36,19 @@ import {
     pocketKey,
     rectArea,
     rectFromPockets,
+    rectOrigin,
+    singlePocketRect,
     validateRectShape,
 } from "./gridMath";
-import type {ArtMovePayload} from "../pocket/dragPayload";
+import {type InitialLoad, listInlinedCardImageIds, resolveInitialBinder} from "./initialBinder";
+import {useAutoSave} from "./useAutoSave";
+import {useBinderShortcuts} from "./useBinderShortcuts";
 
 export interface BinderStateValue {
     binder: Binder;
     pocketContents: Map<string, PocketContent>;
+    canUndo: boolean;
+    canRedo: boolean;
 }
 
 export interface SelectionValue {
@@ -57,66 +58,32 @@ export interface SelectionValue {
 }
 
 export interface BinderActions {
-    addPageAfter(pageIndex: number): void;
-
-    deletePage(pageIndex: number): void;
-
-    placeCardFromSearch(card: CardSummary): void;
-
-    placeCardAt(pocket: PocketRef, card: CardSummary): void;
-
-    moveCard(from: PocketRef, to: PocketRef): void;
-
-    placeArtInSelection(art: ArtPiece): void;
-
-    dropArtOnPocket(pocket: PocketRef, art: ArtPiece): void;
-
-    moveArt(move: ArtMovePayload, to: PocketRef): void;
-
-    setArtCrop(placementId: string, crop: ArtCrop): void;
-
-    removeSelectionContent(): void;
-
-    handlePocketMouseDown(pocket: PocketRef): void;
-
-    handlePocketMouseEnter(pocket: PocketRef): void;
-
-    clearSelection(): void;
-
-    setBinderTitle(title: string): void;
-
-    setPocketColumns(columns: PocketColumns): void;
-
-    replaceBinder(binder: Binder): void;
-
-    resetBinder(): void;
+    addPageAfter: (pageIndex: number) => void;
+    deletePage: (pageIndex: number) => void;
+    placeCardFromSearch: (card: CardSummary) => void;
+    placeCardAt: (pocket: PocketRef, card: CardSummary) => void;
+    moveCard: (from: PocketRef, to: PocketRef) => void;
+    toggleSelectedCardOwned: () => void;
+    placeArtInSelection: (art: ArtPiece) => void;
+    dropArtOnPocket: (pocket: PocketRef, art: ArtPiece) => void;
+    moveArt: (move: ArtMovePayload, to: PocketRef) => void;
+    setArtCrop: (placementId: string, crop: ArtCrop) => void;
+    removeSelectionContent: () => void;
+    handlePocketMouseDown: (pocket: PocketRef) => void;
+    handlePocketMouseEnter: (pocket: PocketRef) => void;
+    clearSelection: () => void;
+    setBinderTitle: (title: string) => void;
+    setPocketColumns: (columns: PocketColumns) => void;
+    setPocketGap: (gap: PocketGap) => void;
+    replaceBinder: (binder: Binder) => void;
+    resetBinder: () => void;
+    undo: () => void;
+    redo: () => void;
 }
 
 const BinderStateContext = createContext<BinderStateValue | null>(null);
 const SelectionContext = createContext<SelectionValue | null>(null);
 const BinderActionsContext = createContext<BinderActions | null>(null);
-
-const AUTO_SAVE_DELAY_MS = 150;
-const AUTO_SAVE_MAX_WAIT_MS = 1500;
-
-interface InitialLoad {
-    binder: Binder;
-    source: "share-link" | "local-storage" | "default";
-    shareLinkError: string | null;
-}
-
-function resolveInitialBinder(): InitialLoad {
-    const fromUrl = readBinderFromCurrentUrl();
-    if (fromUrl.status === "ok") {
-        return {binder: fromUrl.binder, source: "share-link", shareLinkError: null};
-    }
-    const shareLinkError = fromUrl.status === "error" ? fromUrl.message : null;
-    const stored = loadBinderFromLocalStorage();
-    if (stored !== null) {
-        return {binder: stored, source: "local-storage", shareLinkError};
-    }
-    return {binder: createDefaultBinder(), source: "default", shareLinkError};
-}
 
 function describeDropped(names: string[]): string {
     const shown = names.slice(0, 4).join(", ");
@@ -125,27 +92,17 @@ function describeDropped(names: string[]): string {
     return `${names.length} card${names.length === 1 ? "" : "s"} (${list})`;
 }
 
-function formatMegabytes(bytes: number): string {
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function singlePocketRect(pocket: PocketRef): GridRect {
-    return {
-        pageIndex: pocket.pageIndex,
-        row: pocket.row,
-        column: pocket.column,
-        rowCount: 1,
-        columnCount: 1,
-    };
-}
-
-function artBlockReason(
+function artPlacementError(
     rect: GridRect,
     binder: Binder,
     contents: Map<string, PocketContent>,
     ownPlacementId: string | null
 ): string | null {
     const columns = binder.pocketColumns;
+    const shapeError = validateRectShape(rect, binder.pages.length, columns);
+    if (shapeError !== null) {
+        return shapeError;
+    }
     const pockets = listCoveredPockets(rect, columns);
     const hitsOtherArt = pockets.some((pocket) => {
         const placement = findPlacementCovering(binder.artPlacements, pocket, columns);
@@ -154,10 +111,7 @@ function artBlockReason(
     if (hitsOtherArt) {
         return "Another art piece already covers part of that region.";
     }
-    const everyPocketHasCard = pockets.every(
-        (pocket) => contents.get(pocketKey(pocket))?.kind === "card"
-    );
-    if (everyPocketHasCard) {
+    if (pockets.every((pocket) => contents.get(pocketKey(pocket))?.kind === "card")) {
         return "Every pocket there holds a card, so the art would be hidden completely.";
     }
     return null;
@@ -167,32 +121,31 @@ export function BinderProvider({children}: { children: ReactNode }) {
     const {showNotice} = useNotices();
 
     const [initialLoad] = useState<InitialLoad>(resolveInitialBinder);
-    const [binder, dispatch] = useReducer(binderReducer, initialLoad.binder);
+    const [history, dispatch] = useReducer(binderHistoryReducer, initialLoad, (load) =>
+        createBinderHistory(load.binder, load.replacedBinder === null ? [] : [load.replacedBinder])
+    );
+    const binder = history.present;
     const [selection, setSelection] = useState<GridRect | null>(null);
-
     const dragAnchorRef = useRef<PocketRef | null>(null);
 
     const pocketContents = useMemo(() => buildPocketContentMap(binder), [binder]);
 
-    const selectedPocketKeys = useMemo(() => {
-        if (selection === null) {
-            return new Set<string>();
-        }
-        return new Set(listCoveredPockets(selection, binder.pocketColumns).map(pocketKey));
-    }, [selection, binder.pocketColumns]);
+    const selectedPocketKeys = useMemo(
+        () => new Set(selection === null ? [] : listCoveredPockets(selection, binder.pocketColumns).map(pocketKey)),
+        [selection, binder.pocketColumns]
+    );
 
-    const selectionIsPlaceable = useMemo(() => {
-        if (selection === null) {
-            return false;
-        }
-        if (validateRectShape(selection, binder.pages.length, binder.pocketColumns) !== null) {
-            return false;
-        }
-        return artBlockReason(selection, binder, pocketContents, null) === null;
-    }, [selection, binder, pocketContents]);
+    const selectionIsPlaceable = useMemo(
+        () => selection !== null && artPlacementError(selection, binder, pocketContents, null) === null,
+        [selection, binder, pocketContents]
+    );
 
     const snapshotRef = useRef({binder, pocketContents, selection, selectedPocketKeys, selectionIsPlaceable});
-    snapshotRef.current = {binder, pocketContents, selection, selectedPocketKeys, selectionIsPlaceable};
+    useLayoutEffect(() => {
+        snapshotRef.current = {binder, pocketContents, selection, selectedPocketKeys, selectionIsPlaceable};
+    });
+
+    useAutoSave(binder);
 
     const startupReportedRef = useRef(false);
     useEffect(() => {
@@ -202,142 +155,79 @@ export function BinderProvider({children}: { children: ReactNode }) {
         startupReportedRef.current = true;
         if (initialLoad.source === "share-link") {
             removeShareParamFromUrl();
-            showNotice("Binder loaded from the share link.", "success");
+            if (initialLoad.replacedBinder === null) {
+                showNotice("Binder loaded from the share link.", "success");
+            } else {
+                showNotice("Binder loaded from the share link. Your own binder is one undo away.", "success", {
+                    label: "Back to mine",
+                    onAction: () => dispatch({type: "UNDO"}),
+                });
+            }
         }
         if (initialLoad.shareLinkError !== null) {
-            showNotice(
-                `${initialLoad.shareLinkError} Your last auto-saved binder was loaded instead.`,
-                "error"
-            );
+            showNotice(`${initialLoad.shareLinkError} Your last auto-saved binder was loaded instead.`, "error");
         }
     }, [initialLoad, showNotice]);
 
     useEffect(() => {
-        applyPocketColumnsCssVariables(binder.pocketColumns);
-    }, [binder.pocketColumns]);
-
-    const saveFailureReportedRef = useRef(false);
-    const reportSave = useCallback((result: SaveResult) => {
-        if (result.status === "saved" || result.status === "unchanged") {
-            saveFailureReportedRef.current = false;
+        const inlinedIds = listInlinedCardImageIds(initialLoad.binder);
+        if (inlinedIds.length === 0) {
             return;
         }
-        if (saveFailureReportedRef.current) {
-            return;
-        }
-        saveFailureReportedRef.current = true;
-        showNotice(
-            result.status === "quota-exceeded"
-                ? `This binder is now ${formatMegabytes(result.bytes)} and no longer fits in browser storage, so auto-save has stopped. Save a binder file from the toolbar to keep your work, then remove some art or cards.`
-                : "Auto-save to this browser failed. Save a binder file from the toolbar to keep your work.",
-            "error"
+        let cancelled = false;
+        findCardImageUrls(inlinedIds).then(
+            (imageUrlsByCardId) => {
+                if (!cancelled && imageUrlsByCardId.size > 0) {
+                    dispatch({type: "SET_CARD_IMAGES", imageUrlsByCardId});
+                }
+            },
+            () => undefined
         );
-    }, [showNotice]);
-
-    const savePendingSinceRef = useRef<number | null>(null);
-    useEffect(() => {
-        if (savePendingSinceRef.current === null) {
-            savePendingSinceRef.current = Date.now();
-        }
-        const waited = Date.now() - savePendingSinceRef.current;
-        const delay = Math.max(0, Math.min(AUTO_SAVE_DELAY_MS, AUTO_SAVE_MAX_WAIT_MS - waited));
-        const timeoutId = window.setTimeout(() => {
-            savePendingSinceRef.current = null;
-            reportSave(saveBinderToLocalStorage(binder));
-        }, delay);
-        return () => window.clearTimeout(timeoutId);
-    }, [binder, reportSave]);
-
-    useEffect(() => {
-        function flushAutoSave() {
-            savePendingSinceRef.current = null;
-            reportSave(saveBinderToLocalStorage(snapshotRef.current.binder));
-        }
-
-        function flushWhenHidden() {
-            if (document.visibilityState === "hidden") {
-                flushAutoSave();
-            }
-        }
-
-        window.addEventListener("pagehide", flushAutoSave);
-        document.addEventListener("visibilitychange", flushWhenHidden);
         return () => {
-            window.removeEventListener("pagehide", flushAutoSave);
-            document.removeEventListener("visibilitychange", flushWhenHidden);
+            cancelled = true;
         };
-    }, [reportSave]);
+    }, [initialLoad]);
 
     useEffect(() => {
         function handleMouseUp() {
             dragAnchorRef.current = null;
         }
 
-        function handleKeyDown(event: KeyboardEvent) {
-            if (event.key === "Escape") {
-                dragAnchorRef.current = null;
-                setSelection(null);
-            }
-        }
-
         window.addEventListener("mouseup", handleMouseUp);
-        window.addEventListener("keydown", handleKeyDown);
-        return () => {
-            window.removeEventListener("mouseup", handleMouseUp);
-            window.removeEventListener("keydown", handleKeyDown);
-        };
+        return () => window.removeEventListener("mouseup", handleMouseUp);
     }, []);
 
     const actions = useMemo<BinderActions>(() => {
         function warnAboutDroppedArt(droppedTitles: string[]): void {
             if (droppedTitles.length > 0) {
-                showNotice(
-                    `Removed art that no longer lines up with its spread: ${droppedTitles.join(", ")}.`,
-                    "info"
-                );
+                showNotice(`Removed art that no longer lines up with its spread: ${droppedTitles.join(", ")}.`, "info");
             }
         }
 
         function tryPlaceArt(rect: GridRect, art: ArtPiece): void {
             const {binder: currentBinder, pocketContents: contents} = snapshotRef.current;
-            const shapeError = validateRectShape(
-                rect,
-                currentBinder.pages.length,
-                currentBinder.pocketColumns
-            );
-            if (shapeError !== null) {
-                showNotice(shapeError, "error");
+            const error = artPlacementError(rect, currentBinder, contents, null);
+            if (error !== null) {
+                showNotice(error, "error");
                 return;
             }
-            const blockReason = artBlockReason(rect, currentBinder, contents, null);
-            if (blockReason !== null) {
-                showNotice(blockReason, "error");
-                return;
-            }
-            dispatch({
-                type: "PLACE_ART",
-                placement: {id: crypto.randomUUID(), art, rect, crop: DEFAULT_ART_CROP},
-            });
+            dispatch({type: "PLACE_ART", placement: {id: crypto.randomUUID(), art, rect, crop: DEFAULT_ART_CROP}});
             setSelection(null);
         }
 
-        async function placeCardAt(pocket: PocketRef, card: CardSummary): Promise<void> {
-            let placed = card;
-            if (!card.smallImageUrl.startsWith("data:")) {
-                try {
-                    placed = {...card, smallImageUrl: await urlToDataUrl(card.smallImageUrl)};
-                } catch {
-                    showNotice(`The image for ${card.name} could not be downloaded.`, "error");
-                    return;
-                }
-            }
-            dispatch({type: "PLACE_CARD", pocket, card: placed});
+        function placeCardAt(pocket: PocketRef, card: CardSummary): void {
+            dispatch({type: "PLACE_CARD", pocket, card});
+        }
+
+        function clearSelection(): void {
+            dragAnchorRef.current = null;
+            setSelection(null);
         }
 
         return {
             addPageAfter(pageIndex: number): void {
                 warnAboutDroppedArt(planPageInsert(snapshotRef.current.binder, pageIndex).droppedTitles);
-                setSelection(null);
+                clearSelection();
                 dispatch({type: "ADD_PAGE_AFTER", pageIndex});
             },
 
@@ -347,18 +237,17 @@ export function BinderProvider({children}: { children: ReactNode }) {
                     return;
                 }
                 warnAboutDroppedArt(planPageDelete(snapshotRef.current.binder, pageIndex).droppedTitles);
-                setSelection(null);
+                clearSelection();
                 dispatch({type: "DELETE_PAGE", pageIndex});
             },
 
             placeCardAt,
 
             moveCard(from: PocketRef, to: PocketRef): void {
-                if (pocketKey(from) === pocketKey(to)) {
-                    return;
+                if (pocketKey(from) !== pocketKey(to)) {
+                    dispatch({type: "MOVE_CARD", from, to});
+                    clearSelection();
                 }
-                dispatch({type: "MOVE_CARD", from, to});
-                setSelection(null);
             },
 
             moveArt(move: ArtMovePayload, to: PocketRef): void {
@@ -367,24 +256,36 @@ export function BinderProvider({children}: { children: ReactNode }) {
                 if (placement === undefined) {
                     return;
                 }
-                const columns = currentBinder.pocketColumns;
-                const rect = moveRectToPocket(placement.rect, move.rowOffset, move.columnOffset, to, columns);
+                const rect = moveRectToPocket(
+                    placement.rect,
+                    move.rowOffset,
+                    move.columnOffset,
+                    to,
+                    currentBinder.pocketColumns
+                );
                 if (rect === null) {
                     showNotice("The art does not fit there.", "error");
                     return;
                 }
-                const shapeError = validateRectShape(rect, currentBinder.pages.length, columns);
-                if (shapeError !== null) {
-                    showNotice(shapeError, "error");
-                    return;
-                }
-                const blockReason = artBlockReason(rect, currentBinder, contents, placement.id);
-                if (blockReason !== null) {
-                    showNotice(blockReason, "error");
+                const error = artPlacementError(rect, currentBinder, contents, placement.id);
+                if (error !== null) {
+                    showNotice(error, "error");
                     return;
                 }
                 dispatch({type: "MOVE_ART", placementId: placement.id, rect});
                 setSelection(rect);
+            },
+
+            toggleSelectedCardOwned(): void {
+                const {selection: currentSelection, pocketContents: contents} = snapshotRef.current;
+                if (currentSelection === null || rectArea(currentSelection) !== 1) {
+                    return;
+                }
+                const pocket = rectOrigin(currentSelection);
+                const content = contents.get(pocketKey(pocket));
+                if (content?.kind === "card") {
+                    dispatch({type: "SET_CARD_OWNED", pocket, owned: content.card.owned !== true});
+                }
             },
 
             setArtCrop(placementId: string, crop: ArtCrop): void {
@@ -404,11 +305,8 @@ export function BinderProvider({children}: { children: ReactNode }) {
                     );
                     return;
                 }
-                placeCardAt(
-                    listCoveredPockets(currentSelection, snapshotRef.current.binder.pocketColumns)[0],
-                    card
-                );
-                setSelection(null);
+                placeCardAt(rectOrigin(currentSelection), card);
+                clearSelection();
             },
 
             placeArtInSelection(art: ArtPiece): void {
@@ -424,44 +322,33 @@ export function BinderProvider({children}: { children: ReactNode }) {
             },
 
             dropArtOnPocket(pocket: PocketRef, art: ArtPiece): void {
-                const current = snapshotRef.current;
-                if (current.selectionIsPlaceable && current.selectedPocketKeys.has(pocketKey(pocket))) {
-                    tryPlaceArt(current.selection as GridRect, art);
-                } else {
-                    tryPlaceArt(singlePocketRect(pocket), art);
-                }
+                const {selection: currentSelection, selectionIsPlaceable: isPlaceable, selectedPocketKeys: keys} =
+                    snapshotRef.current;
+                const dropsIntoSelection = currentSelection !== null && isPlaceable && keys.has(pocketKey(pocket));
+                tryPlaceArt(dropsIntoSelection ? currentSelection : singlePocketRect(pocket), art);
             },
 
             removeSelectionContent(): void {
-                const {
-                    selection: currentSelection,
-                    pocketContents: contents,
-                    binder: currentBinder,
-                } = snapshotRef.current;
+                const {selection: currentSelection, pocketContents: contents, binder: currentBinder} =
+                    snapshotRef.current;
                 if (currentSelection === null) {
                     return;
                 }
-                const anchor = listCoveredPockets(currentSelection, currentBinder.pocketColumns)[0];
-                const content = contents.get(pocketKey(anchor));
-                const isSinglePocket = rectArea(currentSelection) === 1;
-                const selectedArt = findPlacementMatchingRect(
-                    currentBinder.artPlacements,
-                    currentSelection
-                );
-
-                if (isSinglePocket && content?.kind === "card") {
+                const anchor = rectOrigin(currentSelection);
+                const selectedArt = findPlacementMatchingRect(currentBinder.artPlacements, currentSelection);
+                if (rectArea(currentSelection) === 1 && contents.get(pocketKey(anchor))?.kind === "card") {
                     dispatch({type: "CLEAR_POCKET", pocket: anchor});
                 } else if (selectedArt !== null) {
                     dispatch({type: "REMOVE_ART_PLACEMENT", placementId: selectedArt.id});
                 } else {
                     return;
                 }
-                setSelection(null);
+                clearSelection();
             },
 
             handlePocketMouseDown(pocket: PocketRef): void {
                 const content = snapshotRef.current.pocketContents.get(pocketKey(pocket));
-                if (content !== undefined && content.kind === "art") {
+                if (content?.kind === "art") {
                     setSelection(content.placement.rect);
                     return;
                 }
@@ -480,9 +367,7 @@ export function BinderProvider({children}: { children: ReactNode }) {
                 }
             },
 
-            clearSelection(): void {
-                setSelection(null);
-            },
+            clearSelection,
 
             setBinderTitle(title: string): void {
                 dispatch({type: "SET_TITLE", title});
@@ -495,31 +380,46 @@ export function BinderProvider({children}: { children: ReactNode }) {
                 }
                 const plan = planPocketColumnsChange(currentBinder, columns);
                 if (plan.droppedCardNames.length > 0) {
-                    showNotice(
-                        `Removed ${describeDropped(plan.droppedCardNames)} that sat in the fourth column.`,
-                        "info"
-                    );
+                    showNotice(`Removed ${describeDropped(plan.droppedCardNames)} that sat in the fourth column.`, "info");
                 }
                 warnAboutDroppedArt(plan.droppedTitles);
-                setSelection(null);
+                clearSelection();
                 dispatch({type: "SET_POCKET_COLUMNS", columns});
             },
 
+            setPocketGap(gap: PocketGap): void {
+                dispatch({type: "SET_POCKET_GAP", gap});
+            },
+
             replaceBinder(newBinder: Binder): void {
-                setSelection(null);
+                clearSelection();
                 dispatch({type: "REPLACE_BINDER", binder: newBinder});
             },
 
             resetBinder(): void {
-                setSelection(null);
+                clearSelection();
                 dispatch({type: "REPLACE_BINDER", binder: createDefaultBinder()});
+            },
+
+            undo(): void {
+                clearSelection();
+                dispatch({type: "UNDO"});
+            },
+
+            redo(): void {
+                clearSelection();
+                dispatch({type: "REDO"});
             },
         };
     }, [showNotice]);
 
+    useBinderShortcuts(actions);
+
+    const canUndo = history.past.length > 0;
+    const canRedo = history.future.length > 0;
     const stateValue = useMemo<BinderStateValue>(
-        () => ({binder, pocketContents}),
-        [binder, pocketContents]
+        () => ({binder, pocketContents, canUndo, canRedo}),
+        [binder, pocketContents, canUndo, canRedo]
     );
     const selectionValue = useMemo<SelectionValue>(
         () => ({selection, selectedPocketKeys, selectionIsPlaceable}),
@@ -529,9 +429,7 @@ export function BinderProvider({children}: { children: ReactNode }) {
     return (
         <BinderStateContext value={stateValue}>
             <SelectionContext value={selectionValue}>
-                <BinderActionsContext value={actions}>
-                    {children}
-                </BinderActionsContext>
+                <BinderActionsContext value={actions}>{children}</BinderActionsContext>
             </SelectionContext>
         </BinderStateContext>
     );

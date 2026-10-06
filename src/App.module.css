@@ -159,3 +159,11 @@
         max-height: 480px;
     }
 }
+
+.tabPanel {
+    height: 100%;
+}
+
+.tabPanel[hidden] {
+    display: none;
+}

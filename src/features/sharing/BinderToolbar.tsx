@@ -1,4 +1,4 @@
-import {type ChangeEvent, useRef, useState} from "react";
+import {type ChangeEvent, useEffect, useRef, useState} from "react";
 import {GITHUB_REPO_URL} from "../../appLinks";
 import {useBinderActions, useBinderState} from "../binder/state/BinderContext";
 import {usePrintDialog} from "../print/PrintContext";
@@ -8,26 +8,36 @@ import {downloadBinderAsFile, readBinderFromFile} from "./fileTransfer";
 import {buildShareUrl, SHARE_URL_LENGTH_WARNING} from "./shareLink";
 import styles from "./BinderToolbar.module.css";
 
+const RESET_CONFIRM_WINDOW_MS = 4000;
+
 export function BinderToolbar() {
-    const {binder} = useBinderState();
-    const {replaceBinder, resetBinder, setPocketColumns} = useBinderActions();
+    const {binder, canUndo, canRedo} = useBinderState();
+    const {replaceBinder, resetBinder, setPocketColumns, undo, redo} = useBinderActions();
     const {showNotice} = useNotices();
     const openPrintDialog = usePrintDialog();
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isConfirmingReset, setIsConfirmingReset] = useState(false);
 
+    useEffect(() => {
+        if (!isConfirmingReset) {
+            return;
+        }
+        const timeoutId = window.setTimeout(() => setIsConfirmingReset(false), RESET_CONFIRM_WINDOW_MS);
+        return () => window.clearTimeout(timeoutId);
+    }, [isConfirmingReset]);
+
     async function handleCopyShareLink() {
         const url = buildShareUrl(binder);
         try {
             await navigator.clipboard.writeText(url);
         } catch {
-            showNotice("Could not access the clipboard. Use “Export file” instead.", "error");
+            showNotice("Could not access the clipboard. Use “Export” instead.", "error");
             return;
         }
         if (url.length > SHARE_URL_LENGTH_WARNING) {
             showNotice(
-                "Share link copied, but it is very long (uploaded images travel inside it). If it breaks when pasted, use “Export file” instead.",
+                "Share link copied, but it is very long (uploaded images travel inside it). If it breaks when pasted, use “Export” instead.",
                 "info"
             );
         } else {
@@ -49,7 +59,7 @@ export function BinderToolbar() {
         try {
             const imported = await readBinderFromFile(file);
             replaceBinder(imported);
-            showNotice(`Imported binder from ${file.name}.`, "success");
+            showNotice(`Imported binder from ${file.name}.`, "success", {label: "Undo", onAction: undo});
         } catch (error) {
             const message =
                 error instanceof BinderDecodeError
@@ -62,16 +72,15 @@ export function BinderToolbar() {
     function handleResetClick() {
         if (!isConfirmingReset) {
             setIsConfirmingReset(true);
-            window.setTimeout(() => setIsConfirmingReset(false), 4000);
             return;
         }
         setIsConfirmingReset(false);
         resetBinder();
-        showNotice("Started a fresh binder.", "info");
+        showNotice("Started a fresh binder.", "info", {label: "Undo", onAction: undo});
     }
 
     return (
-        <div className={styles.toolbar} data-print="hide">
+        <div className={styles.toolbar}>
             <div
                 className={styles.layoutToggle}
                 role="group"
@@ -95,6 +104,15 @@ export function BinderToolbar() {
             </div>
 
             <div className={styles.buttonGroup}>
+                <button type="button" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)" aria-label="Undo">
+                    ↶
+                </button>
+                <button type="button" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)" aria-label="Redo">
+                    ↷
+                </button>
+            </div>
+
+            <div className={styles.buttonGroup}>
                 <button type="button" onClick={handleCopyShareLink} title="Copy a share link to the clipboard">
                     Share
                 </button>
@@ -114,9 +132,9 @@ export function BinderToolbar() {
                 type="button"
                 className={styles.printButton}
                 onClick={openPrintDialog}
-                title="Print the cut guide"
+                title="Print or download cut-out art, proxy cards, and page guides (Ctrl+P)"
             >
-                Print
+                Print &amp; export
             </button>
 
             <button

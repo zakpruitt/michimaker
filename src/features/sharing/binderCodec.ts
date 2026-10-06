@@ -5,11 +5,13 @@ import {
     type BinderPageData,
     DEFAULT_POCKET_COLUMNS,
     normalizeArtCrop,
+    normalizePocketGap,
     pocketsPerPage,
 } from "../../types/binder";
+import type {CardSummary} from "../../types/card";
 import {validateRectShape} from "../binder/state/gridMath";
 
-export const BINDER_FORMAT_VERSION = 1;
+const BINDER_FORMAT_VERSION = 1;
 
 export interface BinderEnvelope {
     version: number;
@@ -83,11 +85,11 @@ function validateBinder(value: unknown): Binder {
     }
     binder.pages.forEach((page) => validatePage(page, pocketsPerPage(pocketColumns)));
     binder.artPlacements.forEach(validatePlacement);
-    const pages = binder.pages;
+    const pages = binder.pages.map((page) => ({pockets: page.pockets.map(normalizeCard)}));
     const artPlacements = binder.artPlacements
         .filter((placement) => validateRectShape(placement.rect, pages.length, pocketColumns) === null)
         .map((placement) => ({...placement, crop: normalizeArtCrop(placement.crop)}));
-    return {title: binder.title, pocketColumns, pages, artPlacements};
+    return {title: binder.title, pocketColumns, pocketGap: normalizePocketGap(binder.pocketGap), pages, artPlacements};
 }
 
 function validatePage(
@@ -103,6 +105,26 @@ function validatePage(
     ) {
         throw new BinderDecodeError("A page in the binder data is malformed.");
     }
+}
+
+function normalizeCard(value: unknown): CardSummary | null {
+    if (typeof value !== "object" || value === null) {
+        return null;
+    }
+    const card = value as Partial<CardSummary>;
+    if (typeof card.id !== "string" || typeof card.smallImageUrl !== "string") {
+        return null;
+    }
+    return {
+        id: card.id,
+        name: typeof card.name === "string" ? card.name : "Unknown card",
+        setName: typeof card.setName === "string" ? card.setName : "",
+        number: typeof card.number === "string" ? card.number : "",
+        rarity: typeof card.rarity === "string" ? card.rarity : null,
+        smallImageUrl: card.smallImageUrl,
+        marketPrice: typeof card.marketPrice === "number" && Number.isFinite(card.marketPrice) ? card.marketPrice : null,
+        ...(card.owned === true ? {owned: true} : {}),
+    };
 }
 
 function validatePlacement(value: unknown): asserts value is ArtPlacement {

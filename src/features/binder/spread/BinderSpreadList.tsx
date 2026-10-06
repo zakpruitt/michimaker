@@ -13,14 +13,10 @@ export function BinderSpreadList() {
     }
 
     return (
-        <div
-            className={styles.spreadList}
-            data-print="binder-root"
-            data-pocket-columns={binder.pocketColumns}
-        >
-            <div className={styles.spread} data-print="spread">
+        <div className={styles.spreadList} data-pocket-columns={binder.pocketColumns}>
+            <div className={styles.spread}>
                 <BinderCover/>
-                <div className={styles.gutter} data-print="hide" aria-hidden="true"/>
+                <div className={styles.gutter} aria-hidden="true"/>
                 <BinderPageView pageIndex={0}/>
             </div>
 
@@ -29,13 +25,13 @@ export function BinderSpreadList() {
                 const hasRightPage = rightPageIndex < binder.pages.length;
 
                 return (
-                    <div key={leftPageIndex} className={styles.spread} data-print="spread">
+                    <div key={leftPageIndex} className={styles.spread}>
                         <BinderPageView pageIndex={leftPageIndex}/>
-                        <div className={styles.gutter} data-print="hide" aria-hidden="true"/>
+                        <div className={styles.gutter} aria-hidden="true"/>
                         {hasRightPage ? (
                             <BinderPageView pageIndex={rightPageIndex}/>
                         ) : (
-                            <div className={styles.missingPage} data-print="hide">
+                            <div className={styles.missingPage}>
                                 <button
                                     type="button"
                                     className={styles.addMissingPage}

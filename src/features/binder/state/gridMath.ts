@@ -8,11 +8,11 @@ import {
     ROWS_PER_PAGE,
 } from "../../../types/binder";
 
-export function spreadIndexOfPage(pageIndex: number): number {
+function spreadIndexOfPage(pageIndex: number): number {
     return Math.floor((pageIndex + 1) / 2);
 }
 
-export function isLeftPage(pageIndex: number): boolean {
+function isLeftPage(pageIndex: number): boolean {
     return pageIndex % 2 === 1;
 }
 
@@ -20,8 +20,16 @@ export function pocketKey(pocket: PocketRef): string {
     return `${pocket.pageIndex}:${pocket.row}:${pocket.column}`;
 }
 
-export function rectCrossesGutter(rect: GridRect, columns: PocketColumns): boolean {
+function rectCrossesGutter(rect: GridRect, columns: PocketColumns): boolean {
     return rect.column + rect.columnCount > columns;
+}
+
+export function rectOrigin(rect: GridRect): PocketRef {
+    return {pageIndex: rect.pageIndex, row: rect.row, column: rect.column};
+}
+
+export function singlePocketRect(pocket: PocketRef): GridRect {
+    return {...pocket, rowCount: 1, columnCount: 1};
 }
 
 export function rectArea(rect: GridRect): number {
@@ -227,7 +235,7 @@ export function buildPocketContentMap(binder: Binder): Map<string, PocketContent
     return contents;
 }
 
-export function rectCoversPocket(
+function rectCoversPocket(
     rect: GridRect,
     pocket: PocketRef,
     columns: PocketColumns

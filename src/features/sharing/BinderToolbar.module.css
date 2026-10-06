@@ -63,7 +63,7 @@
     border-left: 1px solid var(--color-border);
 }
 
-.buttonGroup button:hover {
+.buttonGroup button:hover:enabled {
     background: var(--color-accent-soft);
     color: var(--color-accent-strong);
 }
@@ -146,4 +146,9 @@
 
 .iconButton svg {
     display: block;
+}
+
+.buttonGroup button:disabled {
+    opacity: 0.4;
+    cursor: default;
 }

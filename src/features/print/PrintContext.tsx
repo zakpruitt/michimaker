@@ -1,16 +1,16 @@
-import {createContext, type ReactNode, use, useCallback, useEffect, useState,} from "react";
-import {ArtOnlyPrintSheets} from "./ArtOnlyPrintSheets";
+import {createContext, type ReactNode, use, useCallback, useEffect, useRef, useState} from "react";
+import {createPortal} from "react-dom";
+import {resolveArtImageUrl} from "../../artImageUrl";
+import {useBinderState} from "../binder/state/BinderContext";
+import {PAPER_SPECS} from "./paper";
 import {PrintDialog} from "./PrintDialog";
-import {PrintPageSetup} from "./PrintPageSetup";
+import {listPrintCells, type PrintLayout} from "./printLayout";
+import {PrintSheets} from "./PrintSheets";
 
-export interface PrintOptions {
-    mode: "pages" | "art-only";
-    pageIndexes: number[] | "all";
-    connectStrips: boolean;
-}
+const IMAGE_WAIT_TIMEOUT_MS = 15000;
+const PRINTING_BODY_CLASS = "michimaker-printing";
 
 const OpenPrintDialogContext = createContext<(() => void) | null>(null);
-const ActivePrintContext = createContext<PrintOptions | null>(null);
 
 export function usePrintDialog(): () => void {
     const openDialog = use(OpenPrintDialogContext);
@@ -20,64 +20,85 @@ export function usePrintDialog(): () => void {
     return openDialog;
 }
 
-export function useActivePrintOptions(): PrintOptions | null {
-    return use(ActivePrintContext);
-}
-
 export function PrintProvider({children}: { children: ReactNode }) {
+    const {binder} = useBinderState();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [activeOptions, setActiveOptions] = useState<PrintOptions | null>(null);
+    const [printLayout, setPrintLayout] = useState<PrintLayout | null>(null);
+    const printRootRef = useRef<HTMLDivElement>(null);
 
     const openDialog = useCallback(() => setIsDialogOpen(true), []);
 
     useEffect(() => {
-        if (activeOptions === null) {
+        function handleKeyDown(event: KeyboardEvent) {
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "p") {
+                event.preventDefault();
+                setIsDialogOpen(true);
+            }
+        }
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, []);
+
+    useEffect(() => {
+        if (printLayout === null) {
             return;
         }
-        const bodyClasses = document.body.classList;
-        if (!activeOptions.connectStrips) {
-            bodyClasses.add("print-cut-all");
-        }
-        if (activeOptions.mode === "art-only") {
-            bodyClasses.add("print-art-only");
-        }
-
+        document.body.classList.add(PRINTING_BODY_CLASS);
         let cancelled = false;
-        const frame = requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                if (cancelled) {
-                    return;
-                }
+        void waitForPrintImages(printRootRef.current, printLayout).then(() => {
+            if (!cancelled) {
                 window.print();
-                setActiveOptions(null);
-            });
+                setPrintLayout(null);
+            }
         });
-
         return () => {
             cancelled = true;
-            cancelAnimationFrame(frame);
-            bodyClasses.remove("print-cut-all", "print-art-only");
+            document.body.classList.remove(PRINTING_BODY_CLASS);
         };
-    }, [activeOptions]);
+    }, [printLayout]);
 
     return (
         <OpenPrintDialogContext value={openDialog}>
-            <ActivePrintContext value={activeOptions}>
-                {children}
-                <PrintPageSetup/>
-                {isDialogOpen && (
-                    <PrintDialog
-                        onCancel={() => setIsDialogOpen(false)}
-                        onConfirm={(options) => {
-                            setIsDialogOpen(false);
-                            setActiveOptions(options);
-                        }}
-                    />
+            {children}
+            {isDialogOpen && (
+                <PrintDialog
+                    onClose={() => setIsDialogOpen(false)}
+                    onPrint={(layout) => {
+                        setIsDialogOpen(false);
+                        setPrintLayout(layout);
+                    }}
+                />
+            )}
+            {printLayout !== null &&
+                createPortal(
+                    <div data-print-root="" ref={printRootRef}>
+                        <style>
+                            {`@page { size: ${PAPER_SPECS[printLayout.paper].cssName} ${printLayout.orientation}; margin: ${printLayout.marginMm}mm; }`}
+                        </style>
+                        <PrintSheets layout={printLayout} pocketGap={binder.pocketGap}/>
+                    </div>,
+                    document.body
                 )}
-                {activeOptions !== null && activeOptions.mode === "art-only" && (
-                    <ArtOnlyPrintSheets pageIndexes={activeOptions.pageIndexes}/>
-                )}
-            </ActivePrintContext>
         </OpenPrintDialogContext>
     );
+}
+
+async function waitForPrintImages(root: HTMLElement | null, layout: PrintLayout): Promise<void> {
+    const imageElements = root === null ? [] : [...root.querySelectorAll("img")];
+    const artUrls = new Set(
+        listPrintCells(layout).flatMap((cell) =>
+            cell.content.kind === "art" ? [resolveArtImageUrl(cell.content.placement.art)] : []
+        )
+    );
+    const pending = [
+        ...imageElements.map((image) => image.decode()),
+        ...[...artUrls].map((url) => {
+            const image = new Image();
+            image.src = url;
+            return image.decode();
+        }),
+    ].map((promise) => promise.catch(() => undefined));
+    const timeout = new Promise((resolve) => window.setTimeout(resolve, IMAGE_WAIT_TIMEOUT_MS));
+    await Promise.race([Promise.all(pending), timeout]);
 }

@@ -44,8 +44,8 @@ function AppLayout() {
     const [activeTab, setActiveTab] = useState<SidePanelTab>("cards");
 
     return (
-        <div className={styles.appContainer} data-print="app">
-            <header className={styles.header} data-print="hide">
+        <div className={styles.appContainer}>
+            <header className={styles.header}>
                 <div className={styles.branding}>
                     <h1 className={styles.title}>MichiMaker</h1>
                     <p className={styles.subtitle}>
@@ -58,12 +58,12 @@ function AppLayout() {
             <main className={styles.mainLayout}>
                 <div className={styles.binderColumn}>
                     <SelectionBanner/>
-                    <div className={styles.scrollArea} data-print="scroll-area">
+                    <div className={styles.scrollArea}>
                         <BinderSpreadList/>
                     </div>
                 </div>
 
-                <aside className={styles.sidePanel} data-print="hide">
+                <aside className={styles.sidePanel}>
                     <div className={styles.tabBar} role="tablist">
                         <button
                             type="button"
@@ -85,7 +85,12 @@ function AppLayout() {
                         </button>
                     </div>
                     <div className={styles.tabContent}>
-                        {activeTab === "cards" ? <CardSearchPanel/> : <ArtPanel/>}
+                        <div role="tabpanel" className={styles.tabPanel} aria-label="Cards" hidden={activeTab !== "cards"}>
+                            <CardSearchPanel/>
+                        </div>
+                        <div role="tabpanel" className={styles.tabPanel} aria-label="Art" hidden={activeTab !== "art"}>
+                            <ArtPanel/>
+                        </div>
                     </div>
                 </aside>
             </main>

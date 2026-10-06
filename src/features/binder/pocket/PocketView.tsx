@@ -1,6 +1,6 @@
-import {type DragEvent, type MouseEvent, useMemo} from "react";
+import {type DragEvent, type MouseEvent, useMemo, useState} from "react";
 import {resolveArtImageUrl} from "../../../artImageUrl";
-import type {PocketColumns, PocketContent, PocketRef} from "../../../types/binder";
+import type {PocketContent, PocketGap, PocketRef} from "../../../types/binder";
 import {formatUsd} from "../../../types/card";
 import {useBinderActions, useSelection} from "../state/BinderContext";
 import {computeArtCellStyle} from "./artSpanStyle";
@@ -22,10 +22,10 @@ import styles from "./PocketView.module.css";
 interface PocketViewProps {
     pocket: PocketRef;
     content: PocketContent;
-    columns: PocketColumns;
+    pocketGap: PocketGap;
 }
 
-export function PocketView({pocket, content, columns}: PocketViewProps) {
+export function PocketView({pocket, content, pocketGap}: PocketViewProps) {
     const {selection, selectedPocketKeys, selectionIsPlaceable} = useSelection();
     const {
         handlePocketMouseDown,
@@ -109,8 +109,6 @@ export function PocketView({pocket, content, columns}: PocketViewProps) {
     return (
         <div
             className={classNames.join(" ")}
-            data-print="pocket"
-            data-print-content={content.kind}
             draggable={content.kind !== "empty"}
             onDragStart={handleDragStart}
             onMouseDown={handleMouseDown}
@@ -123,81 +121,57 @@ export function PocketView({pocket, content, columns}: PocketViewProps) {
             onDrop={handleDrop}
         >
             {content.kind === "card" && <CardCell content={content}/>}
-            {content.kind === "art" && <ArtCell content={content} columns={columns}/>}
+            {content.kind === "art" && <ArtCell content={content} pocketGap={pocketGap}/>}
         </div>
     );
 }
 
 function CardCell({content}: { content: Extract<PocketContent, { kind: "card" }> }) {
+    const {card} = content;
+    const [failedUrl, setFailedUrl] = useState<string | null>(null);
+
     return (
         <>
-            <img
-                src={content.card.smallImageUrl}
-                alt={content.card.name}
-                className={styles.cardImage}
-                draggable={false}
-            />
-            {content.card.marketPrice !== null && (
-                <span className={styles.priceTag} data-print="hide">
-          {formatUsd(content.card.marketPrice)}
-        </span>
+            {failedUrl === card.smallImageUrl ? (
+                <span className={styles.cardFallback}>{card.name}</span>
+            ) : (
+                <img
+                    src={card.smallImageUrl}
+                    alt={card.name}
+                    className={styles.cardImage}
+                    draggable={false}
+                    onError={() => setFailedUrl(card.smallImageUrl)}
+                />
+            )}
+            {card.marketPrice !== null && (
+                <span className={styles.priceTag}>
+                    {formatUsd(card.marketPrice)}
+                </span>
+            )}
+            {card.owned === true && (
+                <span className={styles.ownedBadge} title="Owned" aria-label="Owned">✓</span>
             )}
         </>
     );
 }
 
-function ArtCell({
-                     content,
-                     columns,
-                 }: {
-    content: Extract<PocketContent, { kind: "art" }>;
-    columns: PocketColumns;
-}) {
+function ArtCell({content, pocketGap}: { content: Extract<PocketContent, { kind: "art" }>; pocketGap: PocketGap }) {
     const {placement, rowOffset, columnOffset, holes} = content;
     const aspectRatio = useImageAspectRatio(resolveArtImageUrl(placement.art));
     const backgroundStyle = useMemo(
-        () => computeArtCellStyle(placement, rowOffset, columnOffset, aspectRatio),
-        [placement, rowOffset, columnOffset, aspectRatio]
+        () => computeArtCellStyle(placement, rowOffset, columnOffset, pocketGap, aspectRatio),
+        [placement, rowOffset, columnOffset, pocketGap, aspectRatio]
     );
 
     const isAnchorCell =
         firstVisibleArtOffset(placement.rect, holes) === artOffsetKey(rowOffset, columnOffset);
 
-    const absoluteColumn = placement.rect.column + columnOffset;
-    const isHole = (row: number, column: number) => holes.has(artOffsetKey(row, column));
-    const cutEdges = ["top"];
-    if (
-        rowOffset === placement.rect.rowCount - 1 ||
-        isHole(rowOffset + 1, columnOffset)
-    ) {
-        cutEdges.push("bottom");
-    }
-    if (
-        columnOffset === 0 ||
-        absoluteColumn === columns ||
-        isHole(rowOffset, columnOffset - 1)
-    ) {
-        cutEdges.push("left");
-    }
-    if (
-        columnOffset === placement.rect.columnCount - 1 ||
-        absoluteColumn === columns - 1 ||
-        isHole(rowOffset, columnOffset + 1)
-    ) {
-        cutEdges.push("right");
-    }
-
     return (
-        <div
-            className={styles.artSlice}
-            style={backgroundStyle}
-            data-print="art-cell"
-            data-print-cut={cutEdges.join(" ")}
-        >
+        <div className={styles.artSlice} style={backgroundStyle}>
             {isAnchorCell && (
-                <span className={styles.artTitle} data-print="hide">
-          {placement.art.title} · {placement.rect.rowCount}×{placement.rect.columnCount}
-        </span>
+                <span className={styles.artTitle}>
+                    {placement.art.title} · {placement.rect.rowCount}×{placement.rect.columnCount}
+                </span>
             )}
         </div>
     );

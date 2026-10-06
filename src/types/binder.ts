@@ -14,6 +14,28 @@ export function pocketsPerPage(columns: PocketColumns): number {
 export const POCKET_WIDTH_MM = 63;
 export const POCKET_HEIGHT_MM = 88;
 
+export interface PocketGap {
+    xMm: number;
+    yMm: number;
+}
+
+export const DEFAULT_POCKET_GAP: PocketGap = {xMm: 7, yMm: 7};
+export const MAX_POCKET_GAP_MM = 25;
+
+export function artSpanSizeMm(rect: GridRect, gap: PocketGap): {widthMm: number; heightMm: number} {
+    return {
+        widthMm: rect.columnCount * POCKET_WIDTH_MM + (rect.columnCount - 1) * gap.xMm,
+        heightMm: rect.rowCount * POCKET_HEIGHT_MM + (rect.rowCount - 1) * gap.yMm,
+    };
+}
+
+export function artCellOffsetMm(rowOffset: number, columnOffset: number, gap: PocketGap): {leftMm: number; topMm: number} {
+    return {
+        leftMm: columnOffset * (POCKET_WIDTH_MM + gap.xMm),
+        topMm: rowOffset * (POCKET_HEIGHT_MM + gap.yMm),
+    };
+}
+
 export interface PocketRef {
     pageIndex: number;
     row: number;
@@ -58,6 +80,17 @@ export function normalizeArtCrop(value: unknown): ArtCrop {
     };
 }
 
+export function normalizePocketGap(value: unknown): PocketGap {
+    if (typeof value !== "object" || value === null) {
+        return DEFAULT_POCKET_GAP;
+    }
+    const gap = value as Partial<PocketGap>;
+    return {
+        xMm: clampNumber(gap.xMm, 0, MAX_POCKET_GAP_MM, DEFAULT_POCKET_GAP.xMm),
+        yMm: clampNumber(gap.yMm, 0, MAX_POCKET_GAP_MM, DEFAULT_POCKET_GAP.yMm),
+    };
+}
+
 export interface ArtPlacement {
     id: string;
     art: ArtPiece;
@@ -74,6 +107,7 @@ export const DEFAULT_BINDER_TITLE = "My Michi Binder";
 export interface Binder {
     title: string;
     pocketColumns: PocketColumns;
+    pocketGap: PocketGap;
     pages: BinderPageData[];
     artPlacements: ArtPlacement[];
 }

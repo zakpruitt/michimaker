@@ -1,4 +1,4 @@
-import {type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState} from "react";
+import {type CSSProperties, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState} from "react";
 import {resolveArtImageUrl} from "../../../artImageUrl";
 import {
     type ArtCrop,
@@ -6,13 +6,13 @@ import {
     DEFAULT_ART_CROP,
     MAX_ART_ZOOM,
     MIN_ART_ZOOM,
-    POCKET_HEIGHT_MM,
-    POCKET_WIDTH_MM,
+    artSpanSizeMm,
 } from "../../../types/binder";
 import {useBinderActions, useBinderState} from "../state/BinderContext";
 import {artPanSlack, computeArtSpanStyle} from "../pocket/artSpanStyle";
 import {useImageAspectRatio} from "../pocket/useImageAspectRatio";
 import {artHoleOffsets, artOffsetKey, listCardPocketKeys} from "../state/gridMath";
+import {Modal} from "../../../components/Modal";
 import styles from "./ArtCropDialog.module.css";
 
 const MAX_PREVIEW_WIDTH_PX = 420;
@@ -52,8 +52,8 @@ export function ArtCropDialog({placement, onClose}: ArtCropDialogProps) {
         [rect, binder]
     );
 
-    const spanWidthMm = rect.columnCount * POCKET_WIDTH_MM;
-    const spanHeightMm = rect.rowCount * POCKET_HEIGHT_MM;
+    const gap = binder.pocketGap;
+    const {widthMm: spanWidthMm, heightMm: spanHeightMm} = artSpanSizeMm(rect, gap);
     const previewScale = Math.min(
         MAX_PREVIEW_WIDTH_PX / spanWidthMm,
         MAX_PREVIEW_HEIGHT_PX / spanHeightMm
@@ -61,21 +61,9 @@ export function ArtCropDialog({placement, onClose}: ArtCropDialogProps) {
     const previewWidth = spanWidthMm * previewScale;
     const previewHeight = spanHeightMm * previewScale;
 
-    const slack = artPanSlack(placement, crop, aspectRatio);
+    const slack = artPanSlack(placement, crop, gap, aspectRatio);
     const canPanX = slack.slackXMm > 0.01;
     const canPanY = slack.slackYMm > 0.01;
-
-    useEffect(() => {
-        function handleKeyDown(event: KeyboardEvent) {
-            if (event.key === "Escape") {
-                event.stopPropagation();
-                onClose();
-            }
-        }
-
-        window.addEventListener("keydown", handleKeyDown, true);
-        return () => window.removeEventListener("keydown", handleKeyDown, true);
-    }, [onClose]);
 
     useEffect(() => {
         const node = previewRef.current;
@@ -152,92 +140,86 @@ export function ArtCropDialog({placement, onClose}: ArtCropDialogProps) {
     }
 
     return (
-        <div className={styles.overlay} data-print="hide" onClick={onClose}>
+        <Modal title={`Frame ${placement.art.title}`} onClose={onClose}>
             <div
-                className={styles.dialog}
-                role="dialog"
-                aria-modal="true"
-                aria-label="Adjust art framing"
-                onClick={(event) => event.stopPropagation()}
+                ref={previewRef}
+                className={styles.preview}
+                style={{
+                    width: `${previewWidth}px`,
+                    height: `${previewHeight}px`,
+                    cursor: canPanX || canPanY ? "grab" : "default",
+                    ...computeArtSpanStyle(placement, crop, gap, aspectRatio),
+                }}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
             >
-                <h2 className={styles.title}>Frame {placement.art.title}</h2>
-
                 <div
-                    ref={previewRef}
-                    className={styles.preview}
+                    className={styles.grid}
                     style={{
-                        width: `${previewWidth}px`,
-                        height: `${previewHeight}px`,
-                        cursor: canPanX || canPanY ? "grab" : "default",
-                        ...computeArtSpanStyle(placement, crop, aspectRatio),
-                    }}
-                    onPointerDown={handlePointerDown}
-                    onPointerMove={handlePointerMove}
-                    onPointerUp={handlePointerUp}
-                    onPointerCancel={handlePointerUp}
+                        gridTemplateColumns: `repeat(${rect.columnCount}, 1fr)`,
+                        gridTemplateRows: `repeat(${rect.rowCount}, 1fr)`,
+                        columnGap: `${gap.xMm * previewScale}px`,
+                        rowGap: `${gap.yMm * previewScale}px`,
+                        "--seam-shade": `${(Math.max(gap.xMm, gap.yMm) * previewScale) / 2}px`,
+                    } as CSSProperties}
                 >
-                    <div
-                        className={styles.grid}
-                        style={{
-                            gridTemplateColumns: `repeat(${rect.columnCount}, 1fr)`,
-                            gridTemplateRows: `repeat(${rect.rowCount}, 1fr)`,
-                        }}
-                    >
-                        {cells.map(({rowOffset, columnOffset}) => {
-                            const classNames = [styles.cell];
-                            if (holes.has(artOffsetKey(rowOffset, columnOffset))) {
-                                classNames.push(styles.hole);
-                            }
-                            if (rect.column + columnOffset === binder.pocketColumns) {
-                                classNames.push(styles.gutter);
-                            }
-                            return (
-                                <div
-                                    key={artOffsetKey(rowOffset, columnOffset)}
-                                    className={classNames.join(" ")}
-                                />
-                            );
-                        })}
-                    </div>
-                </div>
-
-                <p className={styles.hint}>
-                    Drag the art to reposition it, scroll or use the slider to zoom. Shaded
-                    pockets sit behind a card.
-                </p>
-
-                <label className={styles.zoomRow}>
-                    <span>Zoom</span>
-                    <input
-                        type="range"
-                        min={MIN_ART_ZOOM}
-                        max={MAX_ART_ZOOM}
-                        step={0.01}
-                        value={crop.zoom}
-                        onChange={(event) =>
-                            setCrop((current) => ({...current, zoom: Number(event.target.value)}))
+                    {cells.map(({rowOffset, columnOffset}) => {
+                        const classNames = [styles.cell];
+                        if (holes.has(artOffsetKey(rowOffset, columnOffset))) {
+                            classNames.push(styles.hole);
                         }
-                    />
-                    <span className={styles.zoomValue}>{crop.zoom.toFixed(2)}×</span>
-                </label>
-
-                <div className={styles.buttons}>
-                    <button
-                        type="button"
-                        className={styles.resetButton}
-                        onClick={() => setCrop(DEFAULT_ART_CROP)}
-                    >
-                        Reset
-                    </button>
-                    <span className={styles.spacer}/>
-                    <button type="button" className={styles.cancelButton} onClick={onClose}>
-                        Cancel
-                    </button>
-                    <button type="button" className={styles.applyButton} onClick={apply}>
-                        Apply
-                    </button>
+                        if (rect.column + columnOffset === binder.pocketColumns) {
+                            classNames.push(styles.gutter);
+                        }
+                        return (
+                            <div
+                                key={artOffsetKey(rowOffset, columnOffset)}
+                                className={classNames.join(" ")}
+                            />
+                        );
+                    })}
                 </div>
             </div>
-        </div>
+
+            <p className={styles.hint}>
+                Drag the art to reposition it, scroll or use the slider to zoom. Striped
+                pockets sit behind a card; the darker bands are the seams between
+                pockets, which never get printed.
+            </p>
+
+            <label className={styles.zoomRow}>
+                <span>Zoom</span>
+                <input
+                    type="range"
+                    min={MIN_ART_ZOOM}
+                    max={MAX_ART_ZOOM}
+                    step={0.01}
+                    value={crop.zoom}
+                    onChange={(event) =>
+                        setCrop((current) => ({...current, zoom: Number(event.target.value)}))
+                    }
+                />
+                <span className={styles.zoomValue}>{crop.zoom.toFixed(2)}×</span>
+            </label>
+
+            <div className={styles.buttons}>
+                <button
+                    type="button"
+                    className={styles.resetButton}
+                    onClick={() => setCrop(DEFAULT_ART_CROP)}
+                >
+                    Reset
+                </button>
+                <span className={styles.spacer}/>
+                <button type="button" className={styles.cancelButton} onClick={onClose}>
+                    Cancel
+                </button>
+                <button type="button" className={styles.applyButton} onClick={apply}>
+                    Apply
+                </button>
+            </div>
+        </Modal>
     );
 }

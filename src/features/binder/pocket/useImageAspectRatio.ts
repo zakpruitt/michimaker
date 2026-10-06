@@ -3,17 +3,13 @@ import {useEffect, useState} from "react";
 const aspectRatioCache = new Map<string, number>();
 
 export function useImageAspectRatio(imageUrl: string): number | null {
-    const [aspectRatio, setAspectRatio] = useState<number | null>(
-        () => aspectRatioCache.get(imageUrl) ?? null
-    );
+    const [loaded, setLoaded] = useState<{url: string; ratio: number} | null>(null);
+    const cached = aspectRatioCache.get(imageUrl);
 
     useEffect(() => {
-        const cached = aspectRatioCache.get(imageUrl);
-        if (cached !== undefined) {
-            setAspectRatio(cached);
+        if (aspectRatioCache.has(imageUrl)) {
             return;
         }
-
         let cancelled = false;
         const image = new Image();
         image.onload = () => {
@@ -21,16 +17,15 @@ export function useImageAspectRatio(imageUrl: string): number | null {
                 const ratio = image.naturalWidth / image.naturalHeight;
                 aspectRatioCache.set(imageUrl, ratio);
                 if (!cancelled) {
-                    setAspectRatio(ratio);
+                    setLoaded({url: imageUrl, ratio});
                 }
             }
         };
         image.src = imageUrl;
-
         return () => {
             cancelled = true;
         };
     }, [imageUrl]);
 
-    return aspectRatio;
+    return cached ?? (loaded?.url === imageUrl ? loaded.ratio : null);
 }

@@ -1,7 +1,7 @@
 import type {Binder} from "../../types/binder";
 import {BinderDecodeError, decodeBinderFromParam, encodeBinderToParam} from "./binderCodec";
 
-export const SHARE_PARAM = "binder";
+const SHARE_PARAM = "binder";
 
 export const SHARE_URL_LENGTH_WARNING = 8000;
 

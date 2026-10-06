@@ -6,6 +6,7 @@ export interface CardSummary {
     rarity: string | null;
     smallImageUrl: string;
     marketPrice: number | null;
+    owned?: boolean;
 }
 
 export function formatUsd(amount: number): string {

@@ -1,144 +1,18 @@
-@page {
-    size: A4 portrait;
-    margin: 8mm;
-}
-
-[data-print="art-sheets"] {
+[data-print-root] {
     display: none;
 }
 
 @media print {
-    body {
+    body.michimaker-printing {
+        margin: 0;
         background: #fff !important;
     }
 
-    [data-print="hide"],
-    [data-print-hidden] {
+    body.michimaker-printing > :not([data-print-root]) {
         display: none !important;
     }
 
-    .print-only {
+    body.michimaker-printing > [data-print-root] {
         display: block;
-        margin: 0 0 2mm;
-        font-size: 9pt;
-        color: #000;
-    }
-
-    [data-print="app"] {
-        height: auto !important;
-        overflow: visible !important;
-        max-width: none !important;
-        padding: 0 !important;
-    }
-
-    [data-print="scroll-area"] {
-        overflow: visible !important;
-        max-height: none !important;
-        padding: 0 !important;
-    }
-
-    [data-print="binder-root"] {
-        display: block !important;
-    }
-
-    [data-print="spread"] {
-        display: block !important;
-        background: none !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-        border-radius: 0 !important;
-        width: auto !important;
-        margin: 0 !important;
-    }
-
-    [data-print="page"] {
-        page-break-after: always;
-        break-after: page;
-        background: #fff !important;
-        border-radius: 0 !important;
-        padding: 0 !important;
-        width: auto !important;
-    }
-
-    [data-print="pocket-grid"] {
-        display: grid !important;
-        grid-template-columns: var(--print-pocket-grid-columns) !important;
-        grid-auto-rows: var(--pocket-height) !important;
-        gap: 0 !important;
-        justify-content: center;
-    }
-
-    [data-print="pocket"] {
-        aspect-ratio: auto !important;
-        width: var(--pocket-width) !important;
-        height: var(--pocket-height) !important;
-        border: 0.3mm dashed #555 !important;
-        border-radius: 0 !important;
-        background: #fff !important;
-        box-shadow: none !important;
-        break-inside: avoid;
-    }
-
-    [data-print="pocket"][data-print-content="art"] {
-        border: none !important;
-    }
-
-    [data-print="art-cell"] {
-        border: 0 dashed #000;
-        background-origin: border-box !important;
-        background-clip: border-box !important;
-    }
-
-    [data-print="art-cell"][data-print-cut~="top"] {
-        border-top-width: 0.5mm;
-    }
-
-    [data-print="art-cell"][data-print-cut~="bottom"] {
-        border-bottom-width: 0.5mm;
-    }
-
-    [data-print="art-cell"][data-print-cut~="left"] {
-        border-left-width: 0.5mm;
-    }
-
-    [data-print="art-cell"][data-print-cut~="right"] {
-        border-right-width: 0.5mm;
-    }
-
-    body.print-cut-all [data-print="art-cell"] {
-        border: none;
-        outline: 0.5mm dashed #000;
-        outline-offset: -0.5mm;
-    }
-
-    body.print-art-only [data-print="binder-root"] {
-        display: none !important;
-    }
-
-    body.print-art-only [data-print="art-sheets"] {
-        display: block;
-    }
-
-    [data-print="art-sheet"] {
-        position: relative;
-        page-break-after: always;
-        break-after: page;
-    }
-
-    [data-print="piece-label"] {
-        display: flex;
-        align-items: flex-end;
-        padding-bottom: 1mm;
-        font-size: 7pt;
-        color: #333;
-        white-space: nowrap;
-        overflow: hidden;
-    }
-
-    [data-print="pocket"],
-    [data-print="art-cell"],
-    [data-print="pocket"] img {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
     }
 }

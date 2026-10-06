@@ -4,9 +4,11 @@ import {
     type Binder,
     type BinderPageData,
     DEFAULT_BINDER_TITLE,
+    DEFAULT_POCKET_GAP,
     DEFAULT_POCKET_COLUMNS,
     type GridRect,
     type PocketColumns,
+    type PocketGap,
     type PocketRef,
     pocketsPerPage,
 } from "../../../types/binder";
@@ -17,17 +19,20 @@ export type BinderAction =
     | { type: "REPLACE_BINDER"; binder: Binder }
     | { type: "SET_TITLE"; title: string }
     | { type: "SET_POCKET_COLUMNS"; columns: PocketColumns }
+    | { type: "SET_POCKET_GAP"; gap: PocketGap }
     | { type: "ADD_PAGE_AFTER"; pageIndex: number }
     | { type: "DELETE_PAGE"; pageIndex: number }
     | { type: "PLACE_CARD"; pocket: PocketRef; card: CardSummary }
     | { type: "MOVE_CARD"; from: PocketRef; to: PocketRef }
     | { type: "CLEAR_POCKET"; pocket: PocketRef }
+    | { type: "SET_CARD_OWNED"; pocket: PocketRef; owned: boolean }
     | { type: "PLACE_ART"; placement: ArtPlacement }
     | { type: "MOVE_ART"; placementId: string; rect: GridRect }
     | { type: "SET_ART_CROP"; placementId: string; crop: ArtCrop }
-    | { type: "REMOVE_ART_PLACEMENT"; placementId: string };
+    | { type: "REMOVE_ART_PLACEMENT"; placementId: string }
+    | { type: "SET_CARD_IMAGES"; imageUrlsByCardId: ReadonlyMap<string, string> };
 
-export function createEmptyPage(columns: PocketColumns): BinderPageData {
+function createEmptyPage(columns: PocketColumns): BinderPageData {
     return {pockets: Array<CardSummary | null>(pocketsPerPage(columns)).fill(null)};
 }
 
@@ -36,6 +41,7 @@ export function createDefaultBinder(): Binder {
     return {
         title: DEFAULT_BINDER_TITLE,
         pocketColumns: columns,
+        pocketGap: DEFAULT_POCKET_GAP,
         pages: [createEmptyPage(columns), createEmptyPage(columns), createEmptyPage(columns)],
         artPlacements: [],
     };
@@ -171,6 +177,14 @@ export function binderReducer(binder: Binder, action: BinderAction): Binder {
             };
         }
 
+        case "SET_POCKET_GAP": {
+            const {gap} = action;
+            if (gap.xMm === binder.pocketGap.xMm && gap.yMm === binder.pocketGap.yMm) {
+                return binder;
+            }
+            return {...binder, pocketGap: gap};
+        }
+
         case "ADD_PAGE_AFTER": {
             const plan = planPageInsert(binder, action.pageIndex);
             return {...binder, pages: plan.pages, artPlacements: plan.artPlacements};
@@ -198,6 +212,14 @@ export function binderReducer(binder: Binder, action: BinderAction): Binder {
             const toCard =
                 binder.pages[to.pageIndex]?.pockets[pocketIndexOf(to, binder.pocketColumns)] ?? null;
             return withUpdatedPocket(withUpdatedPocket(binder, to, fromCard), from, toCard);
+        }
+
+        case "SET_CARD_OWNED": {
+            const card = binder.pages[action.pocket.pageIndex]?.pockets[pocketIndexOf(action.pocket, binder.pocketColumns)];
+            if (card === null || card === undefined || (card.owned === true) === action.owned) {
+                return binder;
+            }
+            return withUpdatedPocket(binder, action.pocket, {...card, owned: action.owned});
         }
 
         case "CLEAR_POCKET": {
@@ -249,6 +271,22 @@ export function binderReducer(binder: Binder, action: BinderAction): Binder {
                 ...binder,
                 artPlacements: binder.artPlacements.filter((p) => p.id !== action.placementId),
             };
+        }
+
+        case "SET_CARD_IMAGES": {
+            const {imageUrlsByCardId} = action;
+            let changed = false;
+            const pages = binder.pages.map((page) => ({
+                pockets: page.pockets.map((card) => {
+                    const imageUrl = card === null ? undefined : imageUrlsByCardId.get(card.id);
+                    if (card === null || imageUrl === undefined || imageUrl === card.smallImageUrl) {
+                        return card;
+                    }
+                    changed = true;
+                    return {...card, smallImageUrl: imageUrl};
+                }),
+            }));
+            return changed ? {...binder, pages} : binder;
         }
     }
 }

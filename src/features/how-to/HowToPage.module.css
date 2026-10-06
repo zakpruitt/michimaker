@@ -139,20 +139,6 @@
     background: var(--color-accent-soft);
 }
 
-.mockStrip {
-    display: flex;
-    max-width: 260px;
-    border: 2px dashed var(--color-text);
-    border-radius: 2px;
-    background: radial-gradient(circle at 30% 35%, rgba(255, 255, 255, 0.5), transparent 40%),
-    linear-gradient(135deg, #9adcf0 0%, #3b8de0 55%, #1e5fae 100%);
-}
-
-.mockStripCell {
-    flex: 1;
-    aspect-ratio: 63 / 88;
-}
-
 .footer {
     display: flex;
     justify-content: space-between;

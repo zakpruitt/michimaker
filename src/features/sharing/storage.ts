@@ -2,6 +2,7 @@ import type {Binder} from "../../types/binder";
 import {envelopeToJson, parseBinderJson} from "./binderCodec";
 
 const STORAGE_KEY = "pokemon-binder-planner.binder.v1";
+const BACKUP_STORAGE_KEY = `${STORAGE_KEY}.before-share-link`;
 
 export type SaveResult =
     | {status: "saved"; bytes: number}
@@ -55,5 +56,16 @@ export function loadBinderFromLocalStorage(): Binder | null {
         return binder;
     } catch {
         return null;
+    }
+}
+
+export function backupStoredBinder(): void {
+    try {
+        const json = window.localStorage.getItem(STORAGE_KEY);
+        if (json !== null) {
+            window.localStorage.setItem(BACKUP_STORAGE_KEY, json);
+        }
+    } catch {
+        return;
     }
 }

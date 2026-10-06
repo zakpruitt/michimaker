@@ -1,5 +1,6 @@
 import {useState} from "react";
 import type {ArtPlacement} from "../../../types/binder";
+import type {CardSummary} from "../../../types/card";
 import {useBinderActions, useBinderState, useSelection} from "../state/BinderContext";
 import {findPlacementMatchingRect, listCoveredPockets, pocketKey, rectArea} from "../state/gridMath";
 import {ArtCropDialog} from "../crop/ArtCropDialog";
@@ -8,12 +9,13 @@ import styles from "./SelectionBanner.module.css";
 export function SelectionBanner() {
     const {selection, selectionIsPlaceable} = useSelection();
     const {binder, pocketContents} = useBinderState();
-    const {removeSelectionContent, clearSelection} = useBinderActions();
+    const {removeSelectionContent, clearSelection, toggleSelectedCardOwned} = useBinderActions();
     const [isCropOpen, setIsCropOpen] = useState(false);
 
     let description: string;
     let canRemove = false;
     let artToFrame: ArtPlacement | null = null;
+    let selectedCard: CardSummary | null = null;
 
     if (selection === null) {
         description = "Click a pocket, or drag across pockets for art.";
@@ -26,8 +28,9 @@ export function SelectionBanner() {
         const selectedArt = findPlacementMatchingRect(binder.artPlacements, selection);
 
         if (isSinglePocket && anchorContent?.kind === "card") {
-            description = `Card: ${anchorContent.card.name}`;
+            description = `Card: ${anchorContent.card.name}${anchorContent.card.owned === true ? " (owned)" : " (still needed)"}`;
             canRemove = true;
+            selectedCard = anchorContent.card;
         } else if (selectedArt !== null) {
             const rect = selectedArt.rect;
             description = `Art: ${selectedArt.art.title} (${rect.rowCount}×${rect.columnCount})`;
@@ -43,14 +46,21 @@ export function SelectionBanner() {
     }
 
     return (
-        <div className={styles.banner} data-print="hide">
-      <span
-          className={selection === null ? styles.hint : styles.description}
-          title={description}
-      >
-        {description}
-      </span>
+        <div className={styles.banner}>
+            <span className={selection === null ? styles.hint : styles.description} title={description}>
+                {description}
+            </span>
             <div className={styles.actions}>
+                {selectedCard !== null && (
+                    <button
+                        type="button"
+                        className={styles.frameButton}
+                        onClick={toggleSelectedCardOwned}
+                        title="Owned cards are skipped when printing proxies (shortcut: O)"
+                    >
+                        {selectedCard.owned === true ? "Mark as needed" : "Mark as owned"}
+                    </button>
+                )}
                 <button
                     type="button"
                     className={styles.frameButton}

@@ -6,7 +6,7 @@ export function BinderCover() {
     const {setBinderTitle} = useBinderActions();
 
     return (
-        <div className={styles.cover} data-print="hide">
+        <div className={styles.cover}>
             <div className={styles.coverInner}>
                 <input
                     type="text"

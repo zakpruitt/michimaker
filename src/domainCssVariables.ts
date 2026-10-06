@@ -1,16 +1,5 @@
-import {DEFAULT_POCKET_COLUMNS, POCKET_HEIGHT_MM, POCKET_WIDTH_MM, type PocketColumns,} from "./types/binder";
+import {POCKET_HEIGHT_MM, POCKET_WIDTH_MM} from "./types/binder";
 
 export function installDomainCssVariables(): void {
-    const rootStyle = document.documentElement.style;
-    rootStyle.setProperty("--pocket-width", `${POCKET_WIDTH_MM}mm`);
-    rootStyle.setProperty("--pocket-height", `${POCKET_HEIGHT_MM}mm`);
-    rootStyle.setProperty("--pocket-aspect-ratio", `${POCKET_WIDTH_MM} / ${POCKET_HEIGHT_MM}`);
-    applyPocketColumnsCssVariables(DEFAULT_POCKET_COLUMNS);
-}
-
-export function applyPocketColumnsCssVariables(columns: PocketColumns): void {
-    document.documentElement.style.setProperty(
-        "--print-pocket-grid-columns",
-        `repeat(${columns}, ${POCKET_WIDTH_MM}mm)`
-    );
+    document.documentElement.style.setProperty("--pocket-aspect-ratio", `${POCKET_WIDTH_MM} / ${POCKET_HEIGHT_MM}`);
 }

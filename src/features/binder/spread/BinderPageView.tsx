@@ -1,13 +1,6 @@
-import {
-    POCKET_HEIGHT_MM,
-    POCKET_WIDTH_MM,
-    type PocketContent,
-    type PocketRef,
-    ROWS_PER_PAGE,
-} from "../../../types/binder";
+import {type PocketContent, type PocketRef, ROWS_PER_PAGE} from "../../../types/binder";
 import {formatUsd} from "../../../types/card";
 import {useBinderActions, useBinderState} from "../state/BinderContext";
-import {useActivePrintOptions} from "../../print/PrintContext";
 import {pocketKey} from "../state/gridMath";
 import {PocketView} from "../pocket/PocketView";
 import styles from "./BinderSpread.module.css";
@@ -21,18 +14,20 @@ const EMPTY_CONTENT: PocketContent = {kind: "empty"};
 export function BinderPageView({pageIndex}: BinderPageViewProps) {
     const {binder, pocketContents} = useBinderState();
     const {addPageAfter, deletePage} = useBinderActions();
-    const activePrintOptions = useActivePrintOptions();
-
-    const isPrintHidden =
-        activePrintOptions !== null &&
-        activePrintOptions.pageIndexes !== "all" &&
-        !activePrintOptions.pageIndexes.includes(pageIndex);
-
     const page = binder.pages[pageIndex];
-    const pageValue = page.pockets.reduce(
-        (total, card) => total + (card?.marketPrice ?? 0),
-        0
-    );
+    let pageValue = 0;
+    let neededValue = 0;
+    let neededCount = 0;
+    for (const card of page.pockets) {
+        if (card === null) {
+            continue;
+        }
+        pageValue += card.marketPrice ?? 0;
+        if (card.owned !== true) {
+            neededCount++;
+            neededValue += card.marketPrice ?? 0;
+        }
+    }
 
     const columns = binder.pocketColumns;
     const pockets: PocketRef[] = [];
@@ -43,17 +38,21 @@ export function BinderPageView({pageIndex}: BinderPageViewProps) {
     }
 
     return (
-        <section
-            className={styles.page}
-            data-print="page"
-            data-print-hidden={isPrintHidden ? "" : undefined}
-        >
-            <header className={styles.pageHeader} data-print="hide">
+        <section className={styles.page}>
+            <header className={styles.pageHeader}>
                 <h2 className={styles.pageTitle}>Page {pageIndex + 1}</h2>
-                <span className={styles.pageValue} title="Total market value of cards on this page">
-          {formatUsd(pageValue)}
-        </span>
-                <div className={styles.pageButtons} data-print="hide">
+                <span
+                    className={styles.pageValue}
+                    title={
+                        neededCount === 0
+                            ? "Total market value of cards on this page"
+                            : `Total market value; ${neededCount} card${neededCount === 1 ? "" : "s"} still needed (${formatUsd(neededValue)})`
+                    }
+                >
+                    {formatUsd(pageValue)}
+                    {neededCount > 0 && ` · ${neededCount} needed`}
+                </span>
+                <div className={styles.pageButtons}>
                     <button
                         type="button"
                         onClick={() => deletePage(pageIndex)}
@@ -72,17 +71,13 @@ export function BinderPageView({pageIndex}: BinderPageViewProps) {
                     </button>
                 </div>
             </header>
-            <p className="print-only">
-                Page {pageIndex + 1} cut guide: each pocket is {POCKET_WIDTH_MM} mm
-                × {POCKET_HEIGHT_MM} mm
-            </p>
-            <div className={styles.pocketGrid} data-print="pocket-grid">
+            <div className={styles.pocketGrid}>
                 {pockets.map((pocket) => (
                     <PocketView
                         key={pocketKey(pocket)}
                         pocket={pocket}
                         content={pocketContents.get(pocketKey(pocket)) ?? EMPTY_CONTENT}
-                        columns={columns}
+                        pocketGap={binder.pocketGap}
                     />
                 ))}
             </div>
