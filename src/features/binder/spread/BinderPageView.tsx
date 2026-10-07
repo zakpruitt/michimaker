@@ -1,4 +1,5 @@
-import {type PocketContent, type PocketRef, ROWS_PER_PAGE} from "../../../types/binder";
+import type {CSSProperties} from "react";
+import {POCKET_WIDTH_MM, type PocketContent, type PocketRef, ROWS_PER_PAGE} from "../../../types/binder";
 import {formatUsd} from "../../../types/card";
 import {useBinderActions, useBinderState} from "../state/BinderContext";
 import {pocketKey} from "../state/gridMath";
@@ -71,7 +72,14 @@ export function BinderPageView({pageIndex}: BinderPageViewProps) {
                     </button>
                 </div>
             </header>
-            <div className={styles.pocketGrid}>
+            <div
+                className={styles.pocketGrid}
+                style={{
+                    "--pocket-columns": columns,
+                    "--gap-x-ratio": binder.pocketGap.xMm / POCKET_WIDTH_MM,
+                    "--gap-y-ratio": binder.pocketGap.yMm / POCKET_WIDTH_MM,
+                } as CSSProperties}
+            >
                 {pockets.map((pocket) => (
                     <PocketView
                         key={pocketKey(pocket)}

@@ -22,6 +22,7 @@
 .page {
     flex: 1;
     min-width: 0;
+    container-type: inline-size;
     background: var(--color-surface);
     border-radius: 10px;
     padding: 10px 12px 12px;
@@ -83,13 +84,11 @@
 }
 
 .pocketGrid {
+    --pocket-width: calc(100cqw / (var(--pocket-columns) + (var(--pocket-columns) - 1) * var(--gap-x-ratio)));
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-}
-
-[data-pocket-columns="4"] .pocketGrid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(var(--pocket-columns), 1fr);
+    column-gap: calc(var(--pocket-width) * var(--gap-x-ratio));
+    row-gap: calc(var(--pocket-width) * var(--gap-y-ratio));
 }
 
 .cover {

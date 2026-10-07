@@ -10,7 +10,7 @@ import {
     type PocketGap,
 } from "../../../types/binder";
 
-interface CellBox {
+export interface ArtBox {
     leftMm: number;
     topMm: number;
     widthMm: number;
@@ -56,7 +56,7 @@ export function artImageRectMm(
     };
 }
 
-function backgroundStyleFor(imageUrl: string, image: ImageRectMm, cell: CellBox): CSSProperties {
+function backgroundStyleFor(imageUrl: string, image: ImageRectMm, cell: ArtBox): CSSProperties {
     const denominatorX = image.widthMm - cell.widthMm;
     const denominatorY = image.heightMm - cell.heightMm;
     const positionX = denominatorX > 0 ? ((cell.leftMm - image.xMm) / denominatorX) * 100 : 0;
@@ -77,10 +77,23 @@ export function computeArtCellStyle(
     gap: PocketGap,
     imageAspectRatio: number | null
 ): CSSProperties {
+    return computeArtBoxStyle(placement, gap, imageAspectRatio, {
+        ...artCellOffsetMm(rowOffset, columnOffset, gap),
+        widthMm: POCKET_WIDTH_MM,
+        heightMm: POCKET_HEIGHT_MM,
+    });
+}
+
+export function computeArtBoxStyle(
+    placement: ArtPlacement,
+    gap: PocketGap,
+    imageAspectRatio: number | null,
+    box: ArtBox
+): CSSProperties {
     return backgroundStyleFor(
         resolveArtImageUrl(placement.art),
         artImageRectMm(placement, placement.crop, gap, imageAspectRatio),
-        {...artCellOffsetMm(rowOffset, columnOffset, gap), widthMm: POCKET_WIDTH_MM, heightMm: POCKET_HEIGHT_MM}
+        box
     );
 }
 

@@ -4,6 +4,7 @@ import {
     POCKET_HEIGHT_MM,
     POCKET_WIDTH_MM,
     type PocketContent,
+    type PocketGap,
     ROWS_PER_PAGE,
 } from "../../types/binder";
 import type {CardSummary} from "../../types/card";
@@ -40,12 +41,19 @@ export interface PrintCell {
     fileName: string;
 }
 
+export interface ArtFill {
+    placement: ArtPlacement;
+    rowOffset: number;
+    columnOffset: number;
+}
+
 export interface PrintPiece {
     key: string;
     label: string | null;
     columns: number;
     rows: number;
     cells: (PrintCell | null)[];
+    artFill: ArtFill | null;
 }
 
 export interface PlacedPiece {
@@ -65,11 +73,13 @@ export interface PrintLayout {
     pageHeightMm: number;
     marginMm: number;
     labelHeightMm: number;
+    pocketGap: PocketGap;
     sheets: PrintSheet[];
 }
 
 const LABEL_HEIGHT_MM = 4;
 const ART_SPACING_MM = 4;
+const NO_GAP: PocketGap = {xMm: 0, yMm: 0};
 
 interface JobPacking {
     labelHeightMm: number;
@@ -90,6 +100,7 @@ interface PieceGrid {
     rows: number;
     cellAt(row: number, column: number): PrintCellContent | null;
     fileNameAt(row: number, column: number): string;
+    artFillAt?(row: number, column: number): ArtFill;
 }
 
 export function buildPrintLayout(
@@ -99,9 +110,12 @@ export function buildPrintLayout(
 ): PrintLayout {
     const grids = buildGrids(binder, pocketContents, settings);
     const packing = JOB_PACKING[settings.job];
+    const gap = settings.job === "art" ? binder.pocketGap : NO_GAP;
     const [portrait, landscape] = (["portrait", "landscape"] as const).map((orientation) => ({
-        layout: layoutFor(grids, settings, packing, orientation),
-        splitsColumns: grids.some((grid) => grid.columns * POCKET_WIDTH_MM > usableSize(settings.paper, orientation).widthMm),
+        layout: layoutFor(grids, settings, packing, orientation, gap),
+        splitsColumns: grids.some(
+            (grid) => blockWidthMm(grid.columns, gap) > usableSize(settings.paper, orientation).widthMm
+        ),
     }));
     const score = (candidate: typeof portrait) => candidate.layout.sheets.length * 2 + (candidate.splitsColumns ? 1 : 0);
     return score(landscape) < score(portrait) ? landscape.layout : portrait.layout;
@@ -122,11 +136,28 @@ export function listPrintCells(layout: PrintLayout): PrintCell[] {
     );
 }
 
-function pieceSizeMm(piece: PrintPiece, labelHeightMm: number): {widthMm: number; heightMm: number} {
+export function cellOriginMm(piece: PrintPiece, index: number, gap: PocketGap): {xMm: number; yMm: number} {
     return {
-        widthMm: piece.columns * POCKET_WIDTH_MM,
-        heightMm: piece.rows * POCKET_HEIGHT_MM + (piece.label === null ? 0 : labelHeightMm),
+        xMm: (index % piece.columns) * (POCKET_WIDTH_MM + gap.xMm),
+        yMm: Math.floor(index / piece.columns) * (POCKET_HEIGHT_MM + gap.yMm),
     };
+}
+
+export function blockSizeMm(piece: PrintPiece, gap: PocketGap): {widthMm: number; heightMm: number} {
+    return {widthMm: blockWidthMm(piece.columns, gap), heightMm: blockHeightMm(piece.rows, gap)};
+}
+
+function blockWidthMm(columns: number, gap: PocketGap): number {
+    return columns * POCKET_WIDTH_MM + (columns - 1) * gap.xMm;
+}
+
+function blockHeightMm(rows: number, gap: PocketGap): number {
+    return rows * POCKET_HEIGHT_MM + (rows - 1) * gap.yMm;
+}
+
+function pieceSizeMm(piece: PrintPiece, labelHeightMm: number, gap: PocketGap): {widthMm: number; heightMm: number} {
+    const block = blockSizeMm(piece, gap);
+    return {widthMm: block.widthMm, heightMm: block.heightMm + (piece.label === null ? 0 : labelHeightMm)};
 }
 
 function includesPage(pageIndexes: number[] | "all", pageIndex: number): boolean {
@@ -209,6 +240,7 @@ function artGrids(binder: Binder, pageIndexes: number[] | "all"): PieceGrid[] {
                 },
                 fileNameAt: (row, column) =>
                     pocketFileName(part.pageIndex, row, part.firstOffset + column, placement.art.title),
+                artFillAt: (row, column) => ({placement, rowOffset: row, columnOffset: part.firstOffset + column}),
             }];
         });
     });
@@ -247,15 +279,20 @@ function layoutFor(
     grids: PieceGrid[],
     settings: PrintSettings,
     packing: JobPacking,
-    orientation: Orientation
+    orientation: Orientation,
+    gap: PocketGap
 ): PrintLayout {
     const page = pageSizeMm(settings.paper, orientation);
     const {widthMm: usableWidth, heightMm: usableHeight} = usableSize(settings.paper, orientation);
-    const maxColumns = Math.max(1, Math.floor(usableWidth / POCKET_WIDTH_MM));
-    const maxRows = Math.max(1, Math.floor((usableHeight - packing.labelHeightMm) / POCKET_HEIGHT_MM));
+    const maxColumns = Math.max(1, Math.floor((usableWidth + gap.xMm) / (POCKET_WIDTH_MM + gap.xMm)));
+    const maxRows = Math.max(
+        1,
+        Math.floor((usableHeight - packing.labelHeightMm + gap.yMm) / (POCKET_HEIGHT_MM + gap.yMm))
+    );
+    const connectStrips = settings.connectStrips && gap.xMm === 0;
 
-    const pieces = grids.flatMap((grid) => splitGrid(grid, maxRows, maxColumns, settings.connectStrips));
-    const sheets = packPieces(pieces, usableWidth, usableHeight, packing);
+    const pieces = grids.flatMap((grid) => splitGrid(grid, maxRows, maxColumns, connectStrips));
+    const sheets = packPieces(pieces, usableWidth, usableHeight, packing, gap);
 
     return {
         paper: settings.paper,
@@ -264,6 +301,7 @@ function layoutFor(
         pageHeightMm: page.heightMm,
         marginMm: PRINT_MARGIN_MM,
         labelHeightMm: packing.labelHeightMm,
+        pocketGap: gap,
         sheets,
     };
 }
@@ -304,6 +342,7 @@ function splitGrid(grid: PieceGrid, maxRows: number, maxColumns: number, connect
                 columns: bounds.columnEnd - bounds.columnStart,
                 rows: bounds.rowEnd - bounds.rowStart,
                 cells,
+                artFill: grid.artFillAt?.(bounds.rowStart, bounds.columnStart) ?? null,
             });
         }
     }
@@ -382,7 +421,13 @@ interface OpenSheet {
     cursorX: number;
 }
 
-function packPieces(pieces: PrintPiece[], usableWidth: number, usableHeight: number, packing: JobPacking): PrintSheet[] {
+function packPieces(
+    pieces: PrintPiece[],
+    usableWidth: number,
+    usableHeight: number,
+    packing: JobPacking,
+    gap: PocketGap
+): PrintSheet[] {
     const ordered = packing.keepOrder
         ? pieces
         : [...pieces].sort((a, b) => b.rows - a.rows || b.columns - a.columns);
@@ -390,7 +435,7 @@ function packPieces(pieces: PrintPiece[], usableWidth: number, usableHeight: num
     const open: OpenSheet[] = [];
 
     for (const piece of ordered) {
-        const {widthMm, heightMm} = pieceSizeMm(piece, packing.labelHeightMm);
+        const {widthMm, heightMm} = pieceSizeMm(piece, packing.labelHeightMm, gap);
         const sameShelf = open.find(
             (candidate) =>
                 candidate.cursorX > 0 &&
@@ -422,11 +467,11 @@ function packPieces(pieces: PrintPiece[], usableWidth: number, usableHeight: num
         target.shelfHeight = Math.max(target.shelfHeight, heightMm);
     }
 
-    return open.map(({sheet}) => centerSheet(sheet, usableWidth, packing.labelHeightMm));
+    return open.map(({sheet}) => centerSheet(sheet, usableWidth, gap));
 }
 
-function centerSheet(sheet: PrintSheet, usableWidth: number, labelHeightMm: number): PrintSheet {
-    const right = Math.max(...sheet.pieces.map(({piece, xMm}) => xMm + pieceSizeMm(piece, labelHeightMm).widthMm));
+function centerSheet(sheet: PrintSheet, usableWidth: number, gap: PocketGap): PrintSheet {
+    const right = Math.max(...sheet.pieces.map(({piece, xMm}) => xMm + blockSizeMm(piece, gap).widthMm));
     const offsetX = Math.max(0, (usableWidth - right) / 2);
     return {pieces: sheet.pieces.map((placed) => ({...placed, xMm: placed.xMm + offsetX}))};
 }

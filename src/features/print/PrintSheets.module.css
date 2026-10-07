@@ -25,26 +25,39 @@
     text-overflow: ellipsis;
 }
 
-.grid {
-    display: grid;
+.block {
+    position: relative;
 }
 
-.cell,
-.emptyPocket {
-    position: relative;
+.artFill,
+.cellSlot,
+.blank {
+    position: absolute;
+}
+
+.artFill {
+    inset: 0;
+}
+
+.cellSlot {
     overflow: hidden;
 }
 
-.emptyPocket {
-    border: 0.25mm dashed #b8b8b8;
+.blank {
+    background: #fff;
 }
 
+.emptyPocket,
 .cardImage,
 .artSlice {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
+}
+
+.emptyPocket {
+    border: 0.25mm dashed #b8b8b8;
 }
 
 .cardImage {
@@ -59,7 +72,8 @@
 }
 
 .sheet,
-.cell,
+.artFill,
+.blank,
 .cardImage,
 .artSlice {
     -webkit-print-color-adjust: exact;

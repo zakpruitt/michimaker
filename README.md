@@ -24,8 +24,9 @@ Desktop only; phones get a landing page instead.
 
 - Print at 100% ("Actual size", not "Fit to page"), then measure one pocket to check it's 63 × 88 mm.
 - Matte photo paper or ~300 gsm cardstock feels closest to a real card.
-- Binder pages have a ~7 mm seam between pockets. Art is cropped around it so the picture stays
-  continuous; change the gap in the print dialog to match your pages.
+- Binder pages have a ~7 mm seam between pockets. Art sheets print each piece whole with a thin
+  strip between pockets; cut out each pocket, throw the strips away, and the picture lines up across
+  the seams. Change the gap in the print dialog to match your pages.
 
 ## Develop
 

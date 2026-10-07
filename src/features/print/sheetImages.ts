@@ -7,8 +7,8 @@ import {
     POCKET_WIDTH_MM,
     type PocketGap,
 } from "../../types/binder";
-import {artImageRectMm} from "../binder/pocket/artSpanStyle";
-import type {PrintCell, PrintLayout, PrintSheet} from "./printLayout";
+import {type ArtBox, artImageRectMm} from "../binder/pocket/artSpanStyle";
+import {type ArtFill, blockSizeMm, cellOriginMm, type PrintCell, type PrintLayout, type PrintSheet} from "./printLayout";
 
 const EXPORT_DPI = 300;
 
@@ -44,12 +44,7 @@ export class ImageLoader {
     }
 }
 
-export async function renderSheetPng(
-    layout: PrintLayout,
-    sheet: PrintSheet,
-    pocketGap: PocketGap,
-    images: ImageLoader
-): Promise<Uint8Array> {
+export async function renderSheetPng(layout: PrintLayout, sheet: PrintSheet, images: ImageLoader): Promise<Uint8Array> {
     const scale = EXPORT_DPI / MM_PER_INCH;
     const canvas = createCanvas(layout.pageWidthMm * scale, layout.pageHeightMm * scale);
     const context = canvas.getContext("2d")!;
@@ -58,23 +53,30 @@ export async function renderSheetPng(
     context.scale(scale, scale);
     context.translate(layout.marginMm, layout.marginMm);
 
+    const gap = layout.pocketGap;
     for (const {piece, xMm, yMm} of sheet.pieces) {
         const labelHeight = piece.label === null ? 0 : layout.labelHeightMm;
+        const block = blockSizeMm(piece, gap);
         if (piece.label !== null) {
-            drawLabel(context, piece.label, xMm, yMm + labelHeight - 0.8, piece.columns * POCKET_WIDTH_MM);
+            drawLabel(context, piece.label, xMm, yMm + labelHeight - 0.8, block.widthMm);
+        }
+        const blockY = yMm + labelHeight;
+        if (piece.artFill !== null) {
+            drawArtFill(context, piece.artFill, gap, images, xMm, blockY, block.widthMm, block.heightMm);
         }
         piece.cells.forEach((cell, index) => {
-            if (cell !== null) {
-                const column = index % piece.columns;
-                const row = Math.floor(index / piece.columns);
-                drawCell(
-                    context,
-                    cell,
-                    xMm + column * POCKET_WIDTH_MM,
-                    yMm + labelHeight + row * POCKET_HEIGHT_MM,
-                    pocketGap,
-                    images
-                );
+            const origin = cellOriginMm(piece, index, gap);
+            const cellX = xMm + origin.xMm;
+            const cellY = blockY + origin.yMm;
+            if (cell === null) {
+                if (piece.artFill !== null) {
+                    context.fillStyle = "#fff";
+                    context.fillRect(cellX, cellY, POCKET_WIDTH_MM, POCKET_HEIGHT_MM);
+                }
+            } else if (piece.artFill !== null && cell.content.kind === "art") {
+                drawCutLines(context, cell, cellX, cellY);
+            } else {
+                drawCell(context, cell, cellX, cellY, gap, images);
             }
         });
     }
@@ -111,6 +113,32 @@ export async function renderArtSpanPng(
     const rect = artImageRectMm(placement, placement.crop, pocketGap, image.naturalWidth / image.naturalHeight);
     context.drawImage(image, rect.xMm, rect.yMm, rect.widthMm, rect.heightMm);
     return canvasToPng(canvas);
+}
+
+function drawArtFill(
+    context: CanvasRenderingContext2D,
+    fill: ArtFill,
+    gap: PocketGap,
+    images: ImageLoader,
+    xMm: number,
+    yMm: number,
+    widthMm: number,
+    heightMm: number
+): void {
+    const url = resolveArtImageUrl(fill.placement.art);
+    const image = images.get(url);
+    const box: ArtBox = {...artCellOffsetMm(fill.rowOffset, fill.columnOffset, gap), widthMm, heightMm};
+    context.save();
+    context.beginPath();
+    context.rect(xMm, yMm, box.widthMm, box.heightMm);
+    context.clip();
+    if (image === null) {
+        drawMissing(context, fill.placement.art.title, xMm, yMm);
+    } else {
+        const rect = artImageRectMm(fill.placement, fill.placement.crop, gap, image.naturalWidth / image.naturalHeight);
+        context.drawImage(image, xMm + rect.xMm - box.leftMm, yMm + rect.yMm - box.topMm, rect.widthMm, rect.heightMm);
+    }
+    context.restore();
 }
 
 function cellImage(cell: PrintCell): {url: string; name: string} | null {

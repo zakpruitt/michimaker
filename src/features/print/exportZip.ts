@@ -33,7 +33,7 @@ export async function buildExportZip(
     };
 
     for (const [index, sheet] of layout.sheets.entries()) {
-        store(`print-sheets/sheet-${padNumber(index + 1)}.png`, await renderSheetPng(layout, sheet, binder.pocketGap, images));
+        store(`print-sheets/sheet-${padNumber(index + 1)}.png`, await renderSheetPng(layout, sheet, images));
         tick();
     }
 
@@ -41,7 +41,7 @@ export async function buildExportZip(
         const folder = settings.job === "art" ? "pocket-pieces" : "proxy-cards";
         const usedNames = new Set<string>();
         for (const cell of cells) {
-            store(`${folder}/${uniqueName(cell.fileName, usedNames)}.png`, await renderCellPng(cell, binder.pocketGap, images));
+            store(`${folder}/${uniqueName(cell.fileName, usedNames)}.png`, await renderCellPng(cell, layout.pocketGap, images));
             tick();
         }
     }
@@ -109,6 +109,8 @@ function readme(binder: Binder, layout: PrintLayout, settings: PrintSettings): s
         "  and stays stiff in the pocket. Avoid uncoated cardstock (fuzzy prints).",
         "- Cut on the dashed lines. A paper trimmer gives the cleanest edges; a corner",
         "  rounder makes pieces match real cards.",
+        "- Art sheets print each piece of art whole. The thin strips between the dashed",
+        "  pockets sit under the seams of your binder page: cut them off and throw them away.",
         "",
     ];
     if (settings.job === "art") {

@@ -136,10 +136,11 @@ export function HowToPage() {
                     <li>
                         <strong>Michi art cut-outs</strong>: just the art, packed onto as few
                         sheets as possible. Pockets in a real binder have a welded seam
-                        between them (about {DEFAULT_POCKET_GAP.xMm} mm), so the art is laid
-                        out across the seams and each piece is cropped from where its
-                        pocket sits. The picture stays continuous in the binder. Set the gap
-                        to match your pages, or 0 to slice edge to edge.
+                        between them (about {DEFAULT_POCKET_GAP.xMm} mm), so each piece of art
+                        prints whole with a thin strip between pockets. Cut out each pocket on
+                        the dashed lines and throw the strips away, and the picture lines up
+                        across the seams in your binder. Set the gap to match your pages, or 0
+                        to slice edge to edge.
                     </li>
                     <li>
                         <strong>Proxy cards</strong>: card-sized placeholders, 9 to a sheet,

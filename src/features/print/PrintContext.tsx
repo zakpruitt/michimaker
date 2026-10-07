@@ -1,7 +1,6 @@
 import {createContext, type ReactNode, use, useCallback, useEffect, useRef, useState} from "react";
 import {createPortal} from "react-dom";
 import {resolveArtImageUrl} from "../../artImageUrl";
-import {useBinderState} from "../binder/state/BinderContext";
 import {PAPER_SPECS} from "./paper";
 import {PrintDialog} from "./PrintDialog";
 import {listPrintCells, type PrintLayout} from "./printLayout";
@@ -21,7 +20,6 @@ export function usePrintDialog(): () => void {
 }
 
 export function PrintProvider({children}: { children: ReactNode }) {
-    const {binder} = useBinderState();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [printLayout, setPrintLayout] = useState<PrintLayout | null>(null);
     const printRootRef = useRef<HTMLDivElement>(null);
@@ -76,7 +74,7 @@ export function PrintProvider({children}: { children: ReactNode }) {
                         <style>
                             {`@page { size: ${PAPER_SPECS[printLayout.paper].cssName} ${printLayout.orientation}; margin: ${printLayout.marginMm}mm; }`}
                         </style>
-                        <PrintSheets layout={printLayout} pocketGap={binder.pocketGap}/>
+                        <PrintSheets layout={printLayout}/>
                     </div>,
                     document.body
                 )}

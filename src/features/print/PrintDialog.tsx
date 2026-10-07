@@ -123,7 +123,7 @@ export function PrintDialog({onPrint, onClose}: PrintDialogProps) {
                             description={
                                 artPieceCount === 0
                                     ? "No art on the selected pages yet."
-                                    : `${artPieceCount} pocket piece${artPieceCount === 1 ? "" : "s"}, packed to save paper, with the seams between pockets cropped out so the art lines up in your binder.`
+                                    : `${artPieceCount} pocket piece${artPieceCount === 1 ? "" : "s"}. Each piece prints whole, including the strips that sit under the seams between pockets; cut out each pocket and throw the strips away.`
                             }
                         />
                         <JobOption
@@ -199,22 +199,24 @@ export function PrintDialog({onPrint, onClose}: PrintDialogProps) {
                                     </span>
                                 </label>
                                 <small>
-                                    The welded strip between pockets (about {DEFAULT_POCKET_GAP.xMm} mm on standard
-                                    pages). Art under the strip is skipped so the image stays continuous. Use 0 to
-                                    slice the art edge to edge.
+                                    The welded seam between pockets (about {DEFAULT_POCKET_GAP.xMm} mm on standard
+                                    pages). The art behind each seam is trimmed away so the picture lines up across
+                                    pockets. Use 0 to slice the art edge to edge.
                                 </small>
                             </div>
-                            <label className={styles.option}>
-                                <input
-                                    type="checkbox"
-                                    checked={connectStrips}
-                                    onChange={(event) => setConnectStrips(event.target.checked)}
-                                />
-                                <span>
-                                    <strong>Skip cut lines inside side-by-side art</strong>
-                                    <small>Fewer cuts while trimming; you still cut each pocket apart before sliding it in.</small>
-                                </span>
-                            </label>
+                            {binder.pocketGap.xMm === 0 && (
+                                <label className={styles.option}>
+                                    <input
+                                        type="checkbox"
+                                        checked={connectStrips}
+                                        onChange={(event) => setConnectStrips(event.target.checked)}
+                                    />
+                                    <span>
+                                        <strong>Skip cut lines inside side-by-side art</strong>
+                                        <small>Fewer cuts while trimming; you still cut each pocket apart before sliding it in.</small>
+                                    </span>
+                                </label>
+                            )}
                         </fieldset>
                     )}
 
@@ -270,7 +272,6 @@ export function PrintDialog({onPrint, onClose}: PrintDialogProps) {
                                 key={index}
                                 layout={layout}
                                 sheet={sheet}
-                                pocketGap={binder.pocketGap}
                                 widthPx={layout.sheets.length === 1 ? SINGLE_PREVIEW_WIDTH_PX : PREVIEW_WIDTH_PX}
                             />
                         ))}

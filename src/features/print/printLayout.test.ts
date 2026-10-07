@@ -4,7 +4,7 @@ import {makeBinder, makeCard, TEST_ART} from "../../test/fixtures";
 import {binderReducer} from "../binder/state/binderReducer";
 import {buildPocketContentMap} from "../binder/state/gridMath";
 import type {PaperSize} from "./paper";
-import {buildPrintLayout, listPrintCells, type PrintLayout, type PrintSettings} from "./printLayout";
+import {blockSizeMm, buildPrintLayout, cellOriginMm, listPrintCells, type PrintLayout, type PrintSettings} from "./printLayout";
 
 function layout(binder: Binder, settings: Partial<PrintSettings> & Pick<PrintSettings, "job" | "paper">): PrintLayout {
     return buildPrintLayout(binder, buildPocketContentMap(binder), {
@@ -21,10 +21,11 @@ function expectWithinPrintableArea(result: PrintLayout): void {
     for (const sheet of result.sheets) {
         for (const {piece, xMm, yMm} of sheet.pieces) {
             const labelHeight = piece.label === null ? 0 : result.labelHeightMm;
+            const block = blockSizeMm(piece, result.pocketGap);
             expect(xMm).toBeGreaterThanOrEqual(0);
             expect(yMm).toBeGreaterThanOrEqual(0);
-            expect(xMm + piece.columns * POCKET_WIDTH_MM).toBeLessThanOrEqual(width + 0.01);
-            expect(yMm + piece.rows * POCKET_HEIGHT_MM + labelHeight).toBeLessThanOrEqual(height + 0.01);
+            expect(xMm + block.widthMm).toBeLessThanOrEqual(width + 0.01);
+            expect(yMm + block.heightMm + labelHeight).toBeLessThanOrEqual(height + 0.01);
         }
     }
 }
@@ -74,8 +75,9 @@ describe.each<PaperSize>(["letter", "a4"])("buildPrintLayout on %s", (paper) => 
 });
 
 describe("art cut-outs", () => {
-    function spreadWithHole(): Binder {
+    function spreadWithHole(gapMm = 7): Binder {
         let binder = makeBinder(3, 3);
+        binder = binderReducer(binder, {type: "SET_POCKET_GAP", gap: {xMm: gapMm, yMm: gapMm}});
         binder = binderReducer(binder, {
             type: "PLACE_ART",
             placement: {
@@ -89,7 +91,7 @@ describe("art cut-outs", () => {
     }
 
     it("splits a spread at the gutter and skips pockets hidden behind cards", () => {
-        const result = layout(spreadWithHole(), {job: "art", paper: "letter"});
+        const result = layout(spreadWithHole(0), {job: "art", paper: "letter"});
         expect(listPrintCells(result)).toHaveLength(17);
         const rightPage = result.sheets
             .flatMap((sheet) => sheet.pieces)
@@ -97,9 +99,38 @@ describe("art cut-outs", () => {
         expect(rightPage.cells.map((cell) => (cell === null ? "_" : "#")).join("")).toBe("####_####");
     });
 
+    it.each<PaperSize>(["letter", "a4"])("prints each piece whole, spaced by the pocket seams, on %s", (paper) => {
+        const result = layout(spreadWithHole(), {job: "art", paper});
+        expect(result.pocketGap).toEqual({xMm: 7, yMm: 7});
+        expectWithinPrintableArea(result);
+        for (const {piece} of result.sheets.flatMap((sheet) => sheet.pieces)) {
+            expect(piece.artFill?.placement.id).toBe("spread");
+            const second = cellOriginMm(piece, 1, result.pocketGap);
+            if (piece.columns > 1) {
+                expect(second.xMm).toBeCloseTo(POCKET_WIDTH_MM + 7);
+            }
+            expect(blockSizeMm(piece, result.pocketGap).heightMm).toBeCloseTo(
+                piece.rows * POCKET_HEIGHT_MM + (piece.rows - 1) * 7
+            );
+        }
+    });
+
+    it("keeps whole-page guides and proxies edge to edge", () => {
+        expect(layout(spreadWithHole(), {job: "pages", paper: "letter"}).pocketGap).toEqual({xMm: 0, yMm: 0});
+        expect(layout(spreadWithHole(), {job: "proxies", paper: "letter"}).pocketGap).toEqual({xMm: 0, yMm: 0});
+    });
+
+    it("always cuts around every pocket when there is a seam between them", () => {
+        const cuts = layout(spreadWithHole(), {job: "art", paper: "letter", connectStrips: true})
+            .sheets.flatMap((sheet) => sheet.pieces)
+            .flatMap(({piece}) => piece.cells)
+            .map((cell) => cell?.cut);
+        expect(cuts.every((cut) => cut === undefined || (cut.left && cut.right && cut.top && cut.bottom))).toBe(true);
+    });
+
     it("leaves out cut lines between side-by-side pieces only when strips are connected", () => {
         const firstRow = (connectStrips: boolean) =>
-            layout(spreadWithHole(), {job: "art", paper: "letter", connectStrips})
+            layout(spreadWithHole(0), {job: "art", paper: "letter", connectStrips})
                 .sheets.flatMap((sheet) => sheet.pieces)
                 .find(({piece}) => piece.label?.startsWith("Page 2"))!
                 .piece.cells.slice(0, 3)

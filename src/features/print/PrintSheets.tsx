@@ -1,9 +1,9 @@
 import {type CSSProperties, useMemo} from "react";
 import {resolveArtImageUrl} from "../../artImageUrl";
-import {POCKET_HEIGHT_MM, POCKET_WIDTH_MM, type PocketGap} from "../../types/binder";
-import {computeArtCellStyle} from "../binder/pocket/artSpanStyle";
+import {artCellOffsetMm, POCKET_HEIGHT_MM, POCKET_WIDTH_MM, type PocketGap} from "../../types/binder";
+import {computeArtBoxStyle, computeArtCellStyle} from "../binder/pocket/artSpanStyle";
 import {useImageAspectRatio} from "../binder/pocket/useImageAspectRatio";
-import type {PrintCell, PrintLayout, PrintSheet} from "./printLayout";
+import {type ArtFill, blockSizeMm, cellOriginMm, type PrintCell, type PrintLayout, type PrintSheet} from "./printLayout";
 import styles from "./PrintSheets.module.css";
 
 const MM_TO_PX = 96 / 25.4;
@@ -11,10 +11,9 @@ const MM_TO_PX = 96 / 25.4;
 interface SheetProps {
     layout: PrintLayout;
     sheet: PrintSheet;
-    pocketGap: PocketGap;
 }
 
-export function PrintSheets({layout, pocketGap}: {layout: PrintLayout; pocketGap: PocketGap}) {
+export function PrintSheets({layout}: {layout: PrintLayout}) {
     return layout.sheets.map((sheet, index) => (
         <section
             key={index}
@@ -24,12 +23,12 @@ export function PrintSheets({layout, pocketGap}: {layout: PrintLayout; pocketGap
                 height: `${layout.pageHeightMm - 2 * layout.marginMm}mm`,
             }}
         >
-            <SheetContent layout={layout} sheet={sheet} pocketGap={pocketGap}/>
+            <SheetContent layout={layout} sheet={sheet}/>
         </section>
     ));
 }
 
-export function SheetPreview({layout, sheet, pocketGap, widthPx}: SheetProps & {widthPx: number}) {
+export function SheetPreview({layout, sheet, widthPx}: SheetProps & {widthPx: number}) {
     const scale = widthPx / (layout.pageWidthMm * MM_TO_PX);
     return (
         <div
@@ -46,44 +45,63 @@ export function SheetPreview({layout, sheet, pocketGap, widthPx}: SheetProps & {
                 }}
             >
                 <div className={styles.previewPrintable}>
-                    <SheetContent layout={layout} sheet={sheet} pocketGap={pocketGap}/>
+                    <SheetContent layout={layout} sheet={sheet}/>
                 </div>
             </div>
         </div>
     );
 }
 
-function SheetContent({layout, sheet, pocketGap}: SheetProps) {
+function SheetContent({layout, sheet}: SheetProps) {
+    const gap = layout.pocketGap;
     return sheet.pieces.map(({piece, xMm, yMm}) => {
-        const labelHeight = piece.label === null ? 0 : layout.labelHeightMm;
+        const block = blockSizeMm(piece, gap);
         return (
-            <div
-                key={piece.key}
-                className={styles.piece}
-                style={{left: `${xMm}mm`, top: `${yMm}mm`, width: `${piece.columns * POCKET_WIDTH_MM}mm`}}
-            >
+            <div key={piece.key} className={styles.piece} style={{left: `${xMm}mm`, top: `${yMm}mm`, width: `${block.widthMm}mm`}}>
                 {piece.label !== null && (
-                    <div className={styles.label} style={{height: `${labelHeight}mm`}}>
+                    <div className={styles.label} style={{height: `${layout.labelHeightMm}mm`}}>
                         {piece.label}
                     </div>
                 )}
-                <div
-                    className={styles.grid}
-                    style={{
-                        gridTemplateColumns: `repeat(${piece.columns}, ${POCKET_WIDTH_MM}mm)`,
-                        gridAutoRows: `${POCKET_HEIGHT_MM}mm`,
-                    }}
-                >
-                    {piece.cells.map((cell, index) =>
-                        cell === null ? <div key={index}/> : <CellView key={index} cell={cell} pocketGap={pocketGap}/>
-                    )}
+                <div className={styles.block} style={{width: `${block.widthMm}mm`, height: `${block.heightMm}mm`}}>
+                    {piece.artFill !== null && <ArtFillView fill={piece.artFill} gap={gap} widthMm={block.widthMm} heightMm={block.heightMm}/>}
+                    {piece.cells.map((cell, index) => {
+                        const origin = cellOriginMm(piece, index, gap);
+                        const position: CSSProperties = {
+                            left: `${origin.xMm}mm`,
+                            top: `${origin.yMm}mm`,
+                            width: `${POCKET_WIDTH_MM}mm`,
+                            height: `${POCKET_HEIGHT_MM}mm`,
+                        };
+                        if (cell === null) {
+                            return piece.artFill === null ? null : <div key={index} className={styles.blank} style={position}/>;
+                        }
+                        return (
+                            <div key={index} className={styles.cellSlot} style={position}>
+                                <CellView cell={cell} gap={gap} paintsArt={piece.artFill === null}/>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         );
     });
 }
 
-function CellView({cell, pocketGap}: {cell: PrintCell; pocketGap: PocketGap}) {
+function ArtFillView({fill, gap, widthMm, heightMm}: {fill: ArtFill; gap: PocketGap; widthMm: number; heightMm: number}) {
+    const aspectRatio = useImageAspectRatio(resolveArtImageUrl(fill.placement.art));
+    const style = useMemo(
+        () => computeArtBoxStyle(fill.placement, gap, aspectRatio, {
+            ...artCellOffsetMm(fill.rowOffset, fill.columnOffset, gap),
+            widthMm,
+            heightMm,
+        }),
+        [fill, gap, aspectRatio, widthMm, heightMm]
+    );
+    return <div className={styles.artFill} style={style}/>;
+}
+
+function CellView({cell, gap, paintsArt}: {cell: PrintCell; gap: PocketGap; paintsArt: boolean}) {
     const {content, cut} = cell;
     if (content.kind === "empty") {
         return <div className={styles.emptyPocket}/>;
@@ -95,23 +113,22 @@ function CellView({cell, pocketGap}: {cell: PrintCell; pocketGap: PocketGap}) {
         borderLeftWidth: cut.left ? undefined : 0,
     };
     return (
-        <div className={styles.cell}>
-            {content.kind === "card" ? (
+        <>
+            {content.kind === "card" && (
                 <img className={styles.cardImage} src={content.card.smallImageUrl} alt={content.card.name}/>
-            ) : (
-                <ArtSlice content={content} pocketGap={pocketGap}/>
             )}
+            {content.kind === "art" && paintsArt && <ArtSlice content={content} gap={gap}/>}
             <div className={styles.cutLines} style={cutStyle}/>
-        </div>
+        </>
     );
 }
 
-function ArtSlice({content, pocketGap}: {content: Extract<PrintCell["content"], {kind: "art"}>; pocketGap: PocketGap}) {
+function ArtSlice({content, gap}: {content: Extract<PrintCell["content"], {kind: "art"}>; gap: PocketGap}) {
     const {placement, rowOffset, columnOffset} = content;
     const aspectRatio = useImageAspectRatio(resolveArtImageUrl(placement.art));
     const style = useMemo(
-        () => computeArtCellStyle(placement, rowOffset, columnOffset, pocketGap, aspectRatio),
-        [placement, rowOffset, columnOffset, pocketGap, aspectRatio]
+        () => computeArtCellStyle(placement, rowOffset, columnOffset, gap, aspectRatio),
+        [placement, rowOffset, columnOffset, gap, aspectRatio]
     );
     return <div className={styles.artSlice} style={style}/>;
 }
