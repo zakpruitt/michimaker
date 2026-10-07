@@ -146,7 +146,8 @@ export function HowToPage() {
                         <strong>Proxy cards</strong>: card-sized placeholders, 9 to a sheet,
                         for the cards you still need. Select a card and press{" "}
                         <strong>O</strong> (or "Mark as owned") once you have the real one,
-                        and it gets a green ✓ and is skipped.
+                        and it gets a green ✓ and is skipped. You can also set how many of
+                        each card to print, and print them in black and white to save ink.
                     </li>
                     <li>
                         <strong>Whole binder pages</strong>: each page as a full layout guide.

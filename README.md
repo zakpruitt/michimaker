@@ -14,8 +14,8 @@ auto-saves to localStorage and uploaded art to IndexedDB. There's no server or a
   uploads. Crop and zoom after placing; cards can sit on top.
 - **Owned or needed**: select a card and press `O` to mark it owned. Page headers show what's left to get.
 - **Print & export**: true-size sheets (63 × 88 mm per pocket) on US Letter or A4 with dashed cut lines.
-  Print the art cut-outs, proxy cards for the cards you still need, or whole-page guides. You can
-  also download 300 DPI images, including the full art sized for Canva.
+  Print the art cut-outs, proxy cards (choose how many of each, optionally in black and white), or
+  whole-page guides. You can also download 300 DPI images, including the full art sized for Canva.
 - **Sharing**: undo/redo, share links that hold the whole binder in the URL, and `.json` export/import.
 
 Desktop only; phones get a landing page instead.

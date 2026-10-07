@@ -21,7 +21,20 @@ export interface PrintSettings {
     paper: PaperSize;
     connectStrips: boolean;
     proxySelection: ProxySelection;
+    proxyCopies: ReadonlyMap<string, number>;
+    grayscaleCards: boolean;
 }
+
+export interface ProxyCandidate {
+    card: CardSummary;
+    pageIndex: number;
+    row: number;
+    column: number;
+    pocketCount: number;
+    neededCount: number;
+}
+
+export const MAX_PROXY_COPIES = 9;
 
 export type PrintCellContent =
     | {kind: "empty"}
@@ -74,6 +87,7 @@ export interface PrintLayout {
     marginMm: number;
     labelHeightMm: number;
     pocketGap: PocketGap;
+    grayscaleCards: boolean;
     sheets: PrintSheet[];
 }
 
@@ -126,8 +140,53 @@ function usableSize(paper: PaperSize, orientation: Orientation): {widthMm: numbe
     return {widthMm: page.widthMm - 2 * PRINT_MARGIN_MM, heightMm: page.heightMm - 2 * PRINT_MARGIN_MM};
 }
 
-export function countProxyCards(binder: Binder, pageIndexes: number[] | "all", selection: ProxySelection): number {
-    return listProxyCards(binder, pageIndexes, selection).length;
+export function listProxyCandidates(binder: Binder, pageIndexes: number[] | "all"): ProxyCandidate[] {
+    const byCardId = new Map<string, ProxyCandidate>();
+    const columns = binder.pocketColumns;
+    binder.pages.forEach((page, pageIndex) => {
+        if (!includesPage(pageIndexes, pageIndex)) {
+            return;
+        }
+        page.pockets.forEach((card, pocketIndex) => {
+            if (card === null) {
+                return;
+            }
+            const needed = card.owned === true ? 0 : 1;
+            const existing = byCardId.get(card.id);
+            if (existing === undefined) {
+                byCardId.set(card.id, {
+                    card,
+                    pageIndex,
+                    row: Math.floor(pocketIndex / columns),
+                    column: pocketIndex % columns,
+                    pocketCount: 1,
+                    neededCount: needed,
+                });
+            } else {
+                existing.pocketCount += 1;
+                existing.neededCount += needed;
+            }
+        });
+    });
+    return [...byCardId.values()];
+}
+
+export function proxyCopiesFor(candidate: ProxyCandidate, settings: Pick<PrintSettings, "proxySelection" | "proxyCopies">): number {
+    const override = settings.proxyCopies.get(candidate.card.id);
+    if (override !== undefined) {
+        return override;
+    }
+    return settings.proxySelection === "all" ? candidate.pocketCount : candidate.neededCount;
+}
+
+export function countProxyCopies(
+    binder: Binder,
+    settings: Pick<PrintSettings, "pageIndexes" | "proxySelection" | "proxyCopies">
+): number {
+    return listProxyCandidates(binder, settings.pageIndexes).reduce(
+        (total, candidate) => total + proxyCopiesFor(candidate, settings),
+        0
+    );
 }
 
 export function listPrintCells(layout: PrintLayout): PrintCell[] {
@@ -171,7 +230,7 @@ function buildGrids(binder: Binder, pocketContents: Map<string, PocketContent>, 
         case "art":
             return artGrids(binder, settings.pageIndexes);
         case "proxies":
-            return proxyGrids(binder, settings.pageIndexes, settings.proxySelection);
+            return proxyGrids(binder, settings);
     }
 }
 
@@ -246,28 +305,18 @@ function artGrids(binder: Binder, pageIndexes: number[] | "all"): PieceGrid[] {
     });
 }
 
-function proxyGrids(binder: Binder, pageIndexes: number[] | "all", selection: ProxySelection): PieceGrid[] {
-    return listProxyCards(binder, pageIndexes, selection).map(({card, pageIndex, row, column}) => ({
-        key: `proxy-${pageIndex}-${row}-${column}`,
-        label: null,
-        columns: 1,
-        rows: 1,
-        cellAt: () => ({kind: "card", card}),
-        fileNameAt: () => pocketFileName(pageIndex, row, column, card.name),
-    }));
-}
-
-function listProxyCards(binder: Binder, pageIndexes: number[] | "all", selection: ProxySelection) {
-    const columns = binder.pocketColumns;
-    return binder.pages.flatMap((page, pageIndex) => {
-        if (!includesPage(pageIndexes, pageIndex)) {
-            return [];
-        }
-        return page.pockets.flatMap((card, pocketIndex) =>
-            card === null || (selection === "needed" && card.owned === true)
-                ? []
-                : [{card, pageIndex, row: Math.floor(pocketIndex / columns), column: pocketIndex % columns}]
-        );
+function proxyGrids(binder: Binder, settings: PrintSettings): PieceGrid[] {
+    return listProxyCandidates(binder, settings.pageIndexes).flatMap((candidate) => {
+        const {card, pageIndex, row, column} = candidate;
+        const baseName = pocketFileName(pageIndex, row, column, card.name);
+        return Array.from({length: proxyCopiesFor(candidate, settings)}, (_, copy): PieceGrid => ({
+            key: `proxy-${card.id}-${copy}`,
+            label: null,
+            columns: 1,
+            rows: 1,
+            cellAt: () => ({kind: "card", card}),
+            fileNameAt: () => (copy === 0 ? baseName : `${baseName}-${copy + 1}`),
+        }));
     });
 }
 
@@ -302,6 +351,7 @@ function layoutFor(
         marginMm: PRINT_MARGIN_MM,
         labelHeightMm: packing.labelHeightMm,
         pocketGap: gap,
+        grayscaleCards: settings.grayscaleCards && settings.job !== "art",
         sheets,
     };
 }

@@ -41,7 +41,7 @@ export async function buildExportZip(
         const folder = settings.job === "art" ? "pocket-pieces" : "proxy-cards";
         const usedNames = new Set<string>();
         for (const cell of cells) {
-            store(`${folder}/${uniqueName(cell.fileName, usedNames)}.png`, await renderCellPng(cell, layout.pocketGap, images));
+            store(`${folder}/${uniqueName(cell.fileName, usedNames)}.png`, await renderCellPng(cell, layout.pocketGap, images, layout.grayscaleCards));
             tick();
         }
     }

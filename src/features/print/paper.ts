@@ -15,8 +15,6 @@ export const PAPER_SPECS: Record<PaperSize, PaperSpec> = {
 
 export const PRINT_MARGIN_MM = 5;
 
-const PAPER_STORAGE_KEY = "michimaker.print.paper";
-
 const LETTER_REGIONS = new Set(["US", "CA", "MX", "PH", "CL", "CO", "VE", "GT", "CR", "PR"]);
 
 export function pageSizeMm(paper: PaperSize, orientation: Orientation): {widthMm: number; heightMm: number} {
@@ -24,27 +22,7 @@ export function pageSizeMm(paper: PaperSize, orientation: Orientation): {widthMm
     return orientation === "portrait" ? {widthMm, heightMm} : {widthMm: heightMm, heightMm: widthMm};
 }
 
-export function loadPaperPreference(): PaperSize {
-    try {
-        const stored = window.localStorage.getItem(PAPER_STORAGE_KEY);
-        if (stored === "letter" || stored === "a4") {
-            return stored;
-        }
-    } catch {
-        return guessPaperSize();
-    }
-    return guessPaperSize();
-}
-
-export function savePaperPreference(paper: PaperSize): void {
-    try {
-        window.localStorage.setItem(PAPER_STORAGE_KEY, paper);
-    } catch {
-        return;
-    }
-}
-
-function guessPaperSize(): PaperSize {
+export function guessPaperSize(): PaperSize {
     const region = new Intl.Locale(navigator.language).maximize().region;
     return region !== undefined && LETTER_REGIONS.has(region) ? "letter" : "a4";
 }

@@ -64,6 +64,10 @@
     object-fit: cover;
 }
 
+.grayscale {
+    filter: grayscale(1);
+}
+
 .cutLines {
     position: absolute;
     inset: 0;

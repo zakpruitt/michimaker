@@ -4,13 +4,24 @@ import {makeBinder, makeCard, TEST_ART} from "../../test/fixtures";
 import {binderReducer} from "../binder/state/binderReducer";
 import {buildPocketContentMap} from "../binder/state/gridMath";
 import type {PaperSize} from "./paper";
-import {blockSizeMm, buildPrintLayout, cellOriginMm, listPrintCells, type PrintLayout, type PrintSettings} from "./printLayout";
+import {
+    blockSizeMm,
+    buildPrintLayout,
+    cellOriginMm,
+    countProxyCopies,
+    listPrintCells,
+    listProxyCandidates,
+    type PrintLayout,
+    type PrintSettings,
+} from "./printLayout";
 
 function layout(binder: Binder, settings: Partial<PrintSettings> & Pick<PrintSettings, "job" | "paper">): PrintLayout {
     return buildPrintLayout(binder, buildPocketContentMap(binder), {
         pageIndexes: "all",
         connectStrips: false,
         proxySelection: "needed",
+        proxyCopies: new Map(),
+        grayscaleCards: false,
         ...settings,
     });
 }
@@ -140,5 +151,59 @@ describe("art cut-outs", () => {
         expect(connected.map(({left, right}) => [left, right])).toEqual([[true, false], [false, false], [false, true]]);
         expect(connected.every(({top, bottom}) => top && bottom)).toBe(true);
         expect(firstRow(false).every(({left, right}) => left && right)).toBe(true);
+    });
+});
+
+describe("proxy quantities", () => {
+    function binderWithDuplicates(): Binder {
+        let binder = makeBinder(3, 1);
+        const place = (pocketIndex: number, card: ReturnType<typeof makeCard>) =>
+            binderReducer(binder, {
+                type: "PLACE_CARD",
+                pocket: {pageIndex: 0, row: Math.floor(pocketIndex / 3), column: pocketIndex % 3},
+                card,
+            });
+        binder = place(0, makeCard("pikachu"));
+        binder = place(1, makeCard("pikachu", {owned: true}));
+        binder = place(2, makeCard("pikachu"));
+        binder = place(3, makeCard("charizard", {owned: true}));
+        return binder;
+    }
+
+    it("groups duplicate printings and defaults to the copies still needed", () => {
+        const candidates = listProxyCandidates(binderWithDuplicates(), "all");
+        expect(candidates.map(({card, pocketCount, neededCount}) => [card.name, pocketCount, neededCount])).toEqual([
+            ["pikachu", 3, 2],
+            ["charizard", 1, 0],
+        ]);
+        const result = layout(binderWithDuplicates(), {job: "proxies", paper: "letter"});
+        expect(listPrintCells(result).map((cell) => cell.fileName)).toEqual([
+            "page01_r1c1_pikachu",
+            "page01_r1c1_pikachu-2",
+        ]);
+    });
+
+    it("prints every pocket, or the exact amount chosen per card", () => {
+        expect(listPrintCells(layout(binderWithDuplicates(), {job: "proxies", paper: "letter", proxySelection: "all"}))).toHaveLength(4);
+        const custom = layout(binderWithDuplicates(), {
+            job: "proxies",
+            paper: "letter",
+            proxyCopies: new Map([["en:pikachu", 0], ["en:charizard", 3]]),
+        });
+        expect(listPrintCells(custom).map((cell) => cell.fileName)).toEqual([
+            "page01_r2c1_charizard",
+            "page01_r2c1_charizard-2",
+            "page01_r2c1_charizard-3",
+        ]);
+        expect(countProxyCopies(binderWithDuplicates(), {
+            pageIndexes: "all",
+            proxySelection: "needed",
+            proxyCopies: new Map([["en:charizard", 1]]),
+        })).toBe(3);
+    });
+
+    it("only turns cards black and white outside the art cut-outs", () => {
+        expect(layout(binderWithDuplicates(), {job: "proxies", paper: "letter", grayscaleCards: true}).grayscaleCards).toBe(true);
+        expect(layout(binderWithDuplicates(), {job: "art", paper: "letter", grayscaleCards: true}).grayscaleCards).toBe(false);
     });
 });

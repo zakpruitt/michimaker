@@ -1,20 +1,26 @@
-import {useMemo, useState} from "react";
+import {useEffect, useMemo, useState} from "react";
 import {DEFAULT_POCKET_GAP, MAX_POCKET_GAP_MM, pocketsPerPage} from "../../types/binder";
 import {Modal} from "../../components/Modal";
 import {useNotices} from "../../components/notices/NoticeContext";
 import {useBinderActions, useBinderState} from "../binder/state/BinderContext";
 import {downloadBlob} from "../sharing/fileTransfer";
-import {loadPaperPreference, PAPER_SPECS, type PaperSize, savePaperPreference} from "./paper";
+import {PAPER_SPECS, type PaperSize} from "./paper";
 import {
     buildPrintLayout,
-    countProxyCards,
+    countProxyCopies,
     listPrintCells,
+    listProxyCandidates,
+    MAX_PROXY_COPIES,
     type PrintJob,
     type PrintLayout,
     type PrintSettings,
+    type ProxyCandidate,
+    proxyCopiesFor,
     type ProxySelection,
 } from "./printLayout";
+import {loadPrintPreferences, savePrintPreferences} from "./printPreferences";
 import {SheetPreview} from "./PrintSheets";
+import {ProxyCopiesList} from "./ProxyCopiesList";
 import styles from "./PrintDialog.module.css";
 
 const PREVIEW_SHEET_LIMIT = 6;
@@ -31,29 +37,38 @@ export function PrintDialog({onPrint, onClose}: PrintDialogProps) {
     const {setPocketGap} = useBinderActions();
     const {showNotice} = useNotices();
 
-    const [job, setJob] = useState<PrintJob>(() => (binder.artPlacements.length > 0 ? "art" : "proxies"));
+    const [preferences] = useState(loadPrintPreferences);
+    const [job, setJob] = useState<PrintJob>(
+        () => preferences.job ?? (binder.artPlacements.length > 0 ? "art" : "proxies")
+    );
     const [allPages, setAllPages] = useState(true);
     const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
-    const [paper, setPaper] = useState<PaperSize>(loadPaperPreference);
+    const [paper, setPaper] = useState<PaperSize>(preferences.paper);
+    const [grayscaleCards, setGrayscaleCards] = useState(preferences.grayscaleCards);
     const [connectStrips, setConnectStrips] = useState(false);
     const [proxySelection, setProxySelection] = useState<ProxySelection>("needed");
+    const [proxyCopies, setProxyCopies] = useState<ReadonlyMap<string, number>>(new Map());
     const [exportProgress, setExportProgress] = useState<{done: number; total: number} | null>(null);
+
+    useEffect(() => {
+        savePrintPreferences({paper, job, grayscaleCards});
+    }, [paper, job, grayscaleCards]);
 
     const pageIndexes = useMemo<number[] | "all">(
         () => (allPages ? "all" : [...selectedPages].sort((a, b) => a - b)),
         [allPages, selectedPages]
     );
     const settings = useMemo<PrintSettings>(
-        () => ({job, pageIndexes, paper, connectStrips, proxySelection}),
-        [job, pageIndexes, paper, connectStrips, proxySelection]
+        () => ({job, pageIndexes, paper, connectStrips, proxySelection, proxyCopies, grayscaleCards}),
+        [job, pageIndexes, paper, connectStrips, proxySelection, proxyCopies, grayscaleCards]
     );
     const layout = useMemo(() => buildPrintLayout(binder, pocketContents, settings), [binder, pocketContents, settings]);
     const artPieceCount = useMemo(
         () => listPrintCells(buildPrintLayout(binder, pocketContents, {...settings, job: "art"})).length,
         [binder, pocketContents, settings]
     );
-    const neededCount = countProxyCards(binder, pageIndexes, "needed");
-    const cardCount = countProxyCards(binder, pageIndexes, "all");
+    const proxyCandidates = useMemo(() => listProxyCandidates(binder, pageIndexes), [binder, pageIndexes]);
+    const proxyCount = countProxyCopies(binder, settings);
 
     const isExporting = exportProgress !== null;
     const nothingSelected = !allPages && selectedPages.size === 0;
@@ -71,9 +86,20 @@ export function PrintDialog({onPrint, onClose}: PrintDialogProps) {
         });
     }
 
-    function choosePaper(next: PaperSize) {
-        setPaper(next);
-        savePaperPreference(next);
+    function applyProxyPreset(preset: ProxySelection | "none") {
+        if (preset === "none") {
+            setProxyCopies(new Map(proxyCandidates.map((candidate) => [candidate.card.id, 0])));
+            return;
+        }
+        setProxySelection(preset);
+        setProxyCopies(new Map());
+    }
+
+    function adjustProxyCopies(candidate: ProxyCandidate, delta: number) {
+        setProxyCopies((current) => {
+            const copies = proxyCopiesFor(candidate, {proxySelection, proxyCopies: current}) + delta;
+            return new Map(current).set(candidate.card.id, Math.min(MAX_PROXY_COPIES, Math.max(0, copies)));
+        });
     }
 
     function updateGap(axis: "xMm" | "yMm", value: string) {
@@ -131,7 +157,7 @@ export function PrintDialog({onPrint, onClose}: PrintDialogProps) {
                             current={job}
                             onSelect={setJob}
                             title="Proxy cards"
-                            description={`Card-sized placeholders for the cards you still need (${neededCount} of ${cardCount}), 9 to a sheet with cut lines.`}
+                            description={`Card-sized placeholders, 9 to a sheet with cut lines. Choose how many of each card to print (${proxyCount} selected).`}
                         />
                         <JobOption
                             job="pages"
@@ -144,29 +170,36 @@ export function PrintDialog({onPrint, onClose}: PrintDialogProps) {
 
                     {job === "proxies" && (
                         <fieldset className={styles.fieldset}>
-                            <legend className={styles.legend}>Which cards</legend>
-                            <label className={styles.option}>
-                                <input
-                                    type="radio"
-                                    name="proxy-selection"
-                                    checked={proxySelection === "needed"}
-                                    onChange={() => setProxySelection("needed")}
-                                />
-                                <span>
-                                    <strong>Cards I still need ({neededCount})</strong>
-                                    <small>Mark cards you own with the ✓ button (or press O) and they are skipped.</small>
-                                </span>
-                            </label>
-                            <label className={styles.option}>
-                                <input
-                                    type="radio"
-                                    name="proxy-selection"
-                                    checked={proxySelection === "all"}
-                                    onChange={() => setProxySelection("all")}
-                                />
-                                <span><strong>Every card ({cardCount})</strong></span>
-                            </label>
+                            <legend className={styles.legend}>How many of each card</legend>
+                            <div className={styles.presets} role="group" aria-label="Quick picks">
+                                <button type="button" onClick={() => applyProxyPreset("needed")}>Still needed</button>
+                                <button type="button" onClick={() => applyProxyPreset("all")}>Every card</button>
+                                <button type="button" onClick={() => applyProxyPreset("none")}>None</button>
+                            </div>
+                            <ProxyCopiesList
+                                candidates={proxyCandidates}
+                                copiesFor={(candidate) => proxyCopiesFor(candidate, settings)}
+                                onAdjust={adjustProxyCopies}
+                            />
+                            <small className={styles.note}>
+                                Cards marked owned (select a card and press O) start at 0.{" "}
+                                {proxyCount} {proxyCount === 1 ? "proxy" : "proxies"} selected.
+                            </small>
                         </fieldset>
+                    )}
+
+                    {job !== "art" && (
+                        <label className={styles.option}>
+                            <input
+                                type="checkbox"
+                                checked={grayscaleCards}
+                                onChange={(event) => setGrayscaleCards(event.target.checked)}
+                            />
+                            <span>
+                                <strong>Print cards in black and white</strong>
+                                <small>Saves colour ink on placeholders you will swap out later.</small>
+                            </span>
+                        </label>
                     )}
 
                     {job === "art" && (
@@ -228,7 +261,7 @@ export function PrintDialog({onPrint, onClose}: PrintDialogProps) {
                                     key={size}
                                     type="button"
                                     className={paper === size ? styles.segmentActive : undefined}
-                                    onClick={() => choosePaper(size)}
+                                    onClick={() => setPaper(size)}
                                 >
                                     {PAPER_SPECS[size].label}
                                 </button>

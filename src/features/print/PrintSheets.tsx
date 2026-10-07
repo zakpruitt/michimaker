@@ -78,7 +78,12 @@ function SheetContent({layout, sheet}: SheetProps) {
                         }
                         return (
                             <div key={index} className={styles.cellSlot} style={position}>
-                                <CellView cell={cell} gap={gap} paintsArt={piece.artFill === null}/>
+                                <CellView
+                                    cell={cell}
+                                    gap={gap}
+                                    paintsArt={piece.artFill === null}
+                                    grayscale={layout.grayscaleCards}
+                                />
                             </div>
                         );
                     })}
@@ -101,7 +106,14 @@ function ArtFillView({fill, gap, widthMm, heightMm}: {fill: ArtFill; gap: Pocket
     return <div className={styles.artFill} style={style}/>;
 }
 
-function CellView({cell, gap, paintsArt}: {cell: PrintCell; gap: PocketGap; paintsArt: boolean}) {
+interface CellViewProps {
+    cell: PrintCell;
+    gap: PocketGap;
+    paintsArt: boolean;
+    grayscale: boolean;
+}
+
+function CellView({cell, gap, paintsArt, grayscale}: CellViewProps) {
     const {content, cut} = cell;
     if (content.kind === "empty") {
         return <div className={styles.emptyPocket}/>;
@@ -115,7 +127,11 @@ function CellView({cell, gap, paintsArt}: {cell: PrintCell; gap: PocketGap; pain
     return (
         <>
             {content.kind === "card" && (
-                <img className={styles.cardImage} src={content.card.smallImageUrl} alt={content.card.name}/>
+                <img
+                    className={grayscale ? `${styles.cardImage} ${styles.grayscale}` : styles.cardImage}
+                    src={content.card.smallImageUrl}
+                    alt={content.card.name}
+                />
             )}
             {content.kind === "art" && paintsArt && <ArtSlice content={content} gap={gap}/>}
             <div className={styles.cutLines} style={cutStyle}/>

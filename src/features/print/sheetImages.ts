@@ -76,21 +76,27 @@ export async function renderSheetPng(layout: PrintLayout, sheet: PrintSheet, ima
             } else if (piece.artFill !== null && cell.content.kind === "art") {
                 drawCutLines(context, cell, cellX, cellY);
             } else {
-                drawCell(context, cell, cellX, cellY, gap, images);
+                drawCell(context, cell, cellX, cellY, gap, images, layout.grayscaleCards);
             }
         });
     }
     return canvasToPng(canvas);
 }
 
-export async function renderCellPng(cell: PrintCell, pocketGap: PocketGap, images: ImageLoader): Promise<Uint8Array> {
+export async function renderCellPng(
+    cell: PrintCell,
+    pocketGap: PocketGap,
+    images: ImageLoader,
+    grayscale: boolean
+): Promise<Uint8Array> {
     const scale = EXPORT_DPI / MM_PER_INCH;
     const canvas = createCanvas(POCKET_WIDTH_MM * scale, POCKET_HEIGHT_MM * scale);
     const context = canvas.getContext("2d")!;
     context.fillStyle = "#fff";
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.scale(scale, scale);
-    drawCell(context, {...cell, cut: {top: false, right: false, bottom: false, left: false}}, 0, 0, pocketGap, images);
+    const uncut = {...cell, cut: {top: false, right: false, bottom: false, left: false}};
+    drawCell(context, uncut, 0, 0, pocketGap, images, grayscale);
     return canvasToPng(canvas);
 }
 
@@ -158,7 +164,8 @@ function drawCell(
     xMm: number,
     yMm: number,
     pocketGap: PocketGap,
-    images: ImageLoader
+    images: ImageLoader,
+    grayscale: boolean
 ): void {
     const {content} = cell;
     const source = cellImage(cell);
@@ -177,6 +184,9 @@ function drawCell(
         drawMissing(context, source.name, xMm, yMm);
     } else if (content.kind === "card") {
         drawCover(context, image, xMm, yMm);
+        if (grayscale) {
+            desaturate(context, xMm, yMm, POCKET_WIDTH_MM, POCKET_HEIGHT_MM);
+        }
     } else if (content.kind === "art") {
         const rect = artImageRectMm(
             content.placement,
@@ -209,6 +219,23 @@ function drawCover(context: CanvasRenderingContext2D, image: HTMLImageElement, x
         width,
         height
     );
+}
+
+function desaturate(context: CanvasRenderingContext2D, xMm: number, yMm: number, widthMm: number, heightMm: number): void {
+    const transform = context.getTransform();
+    const x = Math.round(transform.a * xMm + transform.e);
+    const y = Math.round(transform.d * yMm + transform.f);
+    const width = Math.round(transform.a * widthMm);
+    const height = Math.round(transform.d * heightMm);
+    const pixels = context.getImageData(x, y, width, height);
+    const data = pixels.data;
+    for (let index = 0; index < data.length; index += 4) {
+        const luminance = 0.2126 * data[index] + 0.7152 * data[index + 1] + 0.0722 * data[index + 2];
+        data[index] = luminance;
+        data[index + 1] = luminance;
+        data[index + 2] = luminance;
+    }
+    context.putImageData(pixels, x, y);
 }
 
 function drawMissing(context: CanvasRenderingContext2D, name: string, xMm: number, yMm: number): void {
